@@ -1,0 +1,115 @@
+name: Build APK
+
+# À lancer à la main : onglet Actions > Build APK > Run workflow
+# (après avoir activé GitHub Pages, voir README)
+on:
+  workflow_dispatch:
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: '17'
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+
+      - name: Installer Bubblewrap
+        run: npm install -g @bubblewrap/cli
+
+      - name: Accepter les licences Android
+        run: yes | "$ANDROID_HOME/cmdline-tools/latest/bin/sdkmanager" --licenses > /dev/null || true
+
+      - name: Configurer Bubblewrap
+        run: |
+          mkdir -p ~/.bubblewrap
+          echo "{\"jdkPath\":\"$JAVA_HOME\",\"androidSdkPath\":\"$ANDROID_HOME\"}" > ~/.bubblewrap/config.json
+
+      - name: Créer la clé de signature
+        run: |
+          keytool -genkeypair -v -keystore android.keystore -alias android \
+            -keyalg RSA -keysize 2048 -validity 10000 \
+            -storepass android123456 -keypass android123456 \
+            -dname "CN=Mes heures, O=Perso, C=FR"
+
+      - name: Générer twa-manifest.json
+        run: |
+          OWNER="${GITHUB_REPOSITORY_OWNER}"
+          REPO="${GITHUB_REPOSITORY#*/}"
+          OWNER_LC="$(echo "$OWNER" | tr '[:upper:]' '[:lower:]')"
+          PKG="$(echo "$OWNER_LC" | tr -c 'a-z0-9\n' '_')"
+          HOST="${OWNER_LC}.github.io"
+          BASE="https://${HOST}/${REPO}"
+          cat > twa-manifest.json <<JSON
+          {
+            "packageId": "io.github.u${PKG}.mesheures",
+            "host": "${HOST}",
+            "name": "Mes heures",
+            "launcherName": "Mes heures",
+            "display": "standalone",
+            "themeColor": "#1d6fd8",
+            "themeColorDark": "#1d6fd8",
+            "navigationColor": "#14171b",
+            "navigationColorDark": "#14171b",
+            "navigationDividerColor": "#14171b",
+            "navigationDividerColorDark": "#14171b",
+            "backgroundColor": "#14171b",
+            "enableNotifications": false,
+            "startUrl": "/${REPO}/index.html",
+            "iconUrl": "${BASE}/icon-512.png",
+            "maskableIconUrl": "${BASE}/icon-512.png",
+            "appVersionName": "1.0.0",
+            "appVersion": "1",
+            "appVersionCode": 1,
+            "splashScreenFadeOutDuration": 300,
+            "shortcuts": [],
+            "generatorApp": "bubblewrap-cli",
+            "webManifestUrl": "${BASE}/manifest.json",
+            "fallbackType": "customtabs",
+            "features": {},
+            "alphaDependencies": { "enabled": false },
+            "enableSiteSettingsShortcut": true,
+            "isChromeOSOnly": false,
+            "isMetaQuest": false,
+            "fullScopeUrl": "${BASE}/",
+            "minSdkVersion": 21,
+            "orientation": "portrait",
+            "fingerprints": [],
+            "additionalTrustedOrigins": [],
+            "retainedBundles": [],
+            "shareTarget": null,
+            "fileHandlers": [],
+            "launchHandlerClientMode": "auto",
+            "protocolHandlers": [],
+            "signingKey": { "path": "./android.keystore", "alias": "android" }
+          }
+          JSON
+          cat twa-manifest.json
+          curl -fsI "${BASE}/manifest.json" || (echo "Le site GitHub Pages n'est pas encore en ligne : voir README" && exit 1)
+
+      - name: Générer le projet Android
+        env:
+          BUBBLEWRAP_KEYSTORE_PASSWORD: android123456
+          BUBBLEWRAP_KEY_PASSWORD: android123456
+        run: yes '' | bubblewrap update --skipVersionUpgrade --manifest=twa-manifest.json || true
+
+      - name: Compiler l'APK
+        env:
+          BUBBLEWRAP_KEYSTORE_PASSWORD: android123456
+          BUBBLEWRAP_KEY_PASSWORD: android123456
+        run: yes '' | bubblewrap build --skipPwaValidation || true
+
+      - name: Vérifier que l'APK existe
+        run: ls -la *.apk
+
+      - uses: actions/upload-artifact@v4
+        with:
+          name: MesHeures-APK
+          path: |
+            *.apk
