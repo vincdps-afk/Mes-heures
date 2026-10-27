@@ -23,8 +23,18 @@ jobs:
       - name: Installer Bubblewrap
         run: npm install -g @bubblewrap/cli
 
-      - name: Accepter les licences Android
-        run: yes | "$ANDROID_HOME/cmdline-tools/latest/bin/sdkmanager" --licenses > /dev/null || true
+      - name: Installer le SDK Android
+        run: |
+          SDK="$HOME/android-sdk"
+          mkdir -p "$SDK/cmdline-tools"
+          curl -fsSL -o cmd.zip https://dl.google.com/android/repository/commandlinetools-linux-11076708_latest.zip
+          unzip -q cmd.zip -d "$SDK/cmdline-tools"
+          mv "$SDK/cmdline-tools/cmdline-tools" "$SDK/cmdline-tools/latest"
+          yes | "$SDK/cmdline-tools/latest/bin/sdkmanager" --sdk_root="$SDK" --licenses > /dev/null || true
+          "$SDK/cmdline-tools/latest/bin/sdkmanager" --sdk_root="$SDK" "platform-tools" "platforms;android-35" "build-tools;35.0.0"
+          echo "ANDROID_HOME=$SDK" >> "$GITHUB_ENV"
+          echo "ANDROID_SDK_ROOT=$SDK" >> "$GITHUB_ENV"
+          ls "$SDK"
 
       - name: Configurer Bubblewrap
         run: |
@@ -97,13 +107,13 @@ jobs:
         env:
           BUBBLEWRAP_KEYSTORE_PASSWORD: android123456
           BUBBLEWRAP_KEY_PASSWORD: android123456
-        run: yes '' | bubblewrap update --skipVersionUpgrade --manifest=twa-manifest.json || true
+        run: yes '' | bubblewrap update --skipVersionUpgrade --manifest=twa-manifest.json
 
       - name: Compiler l'APK
         env:
           BUBBLEWRAP_KEYSTORE_PASSWORD: android123456
           BUBBLEWRAP_KEY_PASSWORD: android123456
-        run: yes '' | bubblewrap build --skipPwaValidation || true
+        run: yes '' | bubblewrap build --skipPwaValidation
 
       - name: Vérifier que l'APK existe
         run: ls -la *.apk
