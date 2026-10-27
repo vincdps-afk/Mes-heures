@@ -88,7 +88,7 @@ jobs:
             "isChromeOSOnly": false,
             "isMetaQuest": false,
             "fullScopeUrl": "${BASE}/",
-            "minSdkVersion": 21,
+            "minSdkVersion": 24,
             "orientation": "portrait",
             "fingerprints": [],
             "additionalTrustedOrigins": [],
@@ -113,7 +113,15 @@ jobs:
         env:
           BUBBLEWRAP_KEYSTORE_PASSWORD: android123456
           BUBBLEWRAP_KEY_PASSWORD: android123456
-        run: yes '' | bubblewrap build --skipPwaValidation
+        run: |
+          yes '' | bubblewrap build --skipPwaValidation 2>&1 | tee build.log
+          CODE=${PIPESTATUS[1]}
+          if [ "$CODE" != "0" ]; then
+            echo "=== PLATEFORMES: $(ls $ANDROID_HOME/platforms | tr '\n' ' ') | BUILD-TOOLS: $(ls $ANDROID_HOME/build-tools | tr '\n' ' ')"
+            MSG=$(grep -n -i -E "What went wrong|Failed to find|Caused by|not found|license|Could not" build.log | grep -v "^\s*at " | head -8 | cut -c1-230 | tr '\n' '|')
+            echo "::error title=Resume de l erreur::$MSG PLATEFORMES: $(ls $ANDROID_HOME/platforms | tr '\n' ' ') BUILD-TOOLS: $(ls $ANDROID_HOME/build-tools | tr '\n' ' ')"
+            exit 1
+          fi
 
       - name: Vérifier que l'APK existe
         run: ls -la *.apk
