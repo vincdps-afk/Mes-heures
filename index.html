@@ -89,7 +89,7 @@ return'<div class="sec"><h3>Net potentiel</h3>'+(rt?rw('Net estimé',rt*h+f)+'<d
 function esc(x){return String(x==null?'':x).replace(/[&<>"]/g,function(c){return{'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]})}
 function hello(){return'<div class="hi"><div class="mu">'+esc(S.me.ent)+'</div><div class="hn">Bonjour '+esc(S.me.prenom)+' 👋</div></div>'}
 function pf(k,l,ro){return'<label>'+l+'</label><input data-me="'+k+'" value="'+esc(S.me[k])+'"'+(ro?' readonly':'')+'>'}
-var PEND=null,OBMSG='',SYNCING=false;
+var PEND=null,OBMSG='',SYNCING=false,MODE='new';
 var SB=(typeof SB_URL!=='undefined'&&typeof SB_KEY!=='undefined'&&SB_URL&&SB_KEY)?{u:String(SB_URL).replace(/\/$/,''),k:SB_KEY}:null;
 function grpKey(e){return String(e).normalize('NFD').replace(/[\u0300-\u036f]/g,'').toLowerCase().replace(/[^a-z0-9]/g,'')}
 async function sbAuth(){if(!SB)return null;var a=S.auth,H={apikey:SB.k,'Content-Type':'application/json'};
@@ -100,14 +100,15 @@ var j=await r.json();if(!j.access_token)return null;
 S.auth={at:j.access_token,rt:j.refresh_token,exp:j.expires_at||Math.floor(Date.now()/1000)+3000,uid:j.user.id};save();return j.access_token}catch(e){return null}}
 async function sb(m,p,b,h){var t=await sbAuth();if(!t)throw 0;
 var r=await fetch(SB.u+p,{method:m,headers:Object.assign({apikey:SB.k,Authorization:'Bearer '+t,'Content-Type':'application/json'},h||{}),body:b?JSON.stringify(b):undefined});
-if(!r.ok)throw r.status;var x=await r.text();return x?JSON.parse(x):null}
+var x=await r.text();if(!r.ok)throw{status:r.status,body:x};return x?JSON.parse(x):null}
 async function syncMe(){if(!SB||!S.me||SYNCING||PEND)return;SYNCING=true;var before=JSON.stringify([S.me,tab]);
 try{var t=await sbAuth();if(!t)throw 0;var uid=S.auth.uid;
-var rows=await sb('GET','/rest/v1/profiles?id=eq.'+uid+'&select=id,admin');
-if(!rows.length){
-if(S.me.sync&&S.me.uid===uid){S.me=null;S.ob=0;S.auth=null;OBMSG='Ton compte a été supprimé par l’administrateur.';save();SYNCING=false;render();return}
-await sb('POST','/rest/v1/profiles',{id:uid,prenom:S.me.prenom,nom:S.me.nom,ent:S.me.ent,grp:grpKey(S.me.ent),cs:S.me.cs},{Prefer:'return=minimal'});rows=[{admin:false}]}
-S.me.sync=true;S.me.uid=uid;
+var rows=await sb('GET','/rest/v1/profiles?id=eq.'+uid+'&select=id,admin,has_pin');
+if(!rows.length){var gone=function(m){S.me=null;S.ob=0;S.auth=null;OBMSG=m;save();SYNCING=false;render()};
+if(S.me.sync&&S.me.uid===uid){var mv=await sb('GET','/rest/v1/moved_ids?old_uid=eq.'+uid+'&select=old_uid');gone(mv.length?'Ton compte a été ouvert sur un autre appareil : reconnecte-toi avec ton code personnel.':'Ton compte a été supprimé par l’administrateur.');return}
+if(S.me.sync){gone('Session expirée : reconnecte-toi avec ton code personnel.');return}
+gone('Mise à jour : crée ton compte (ou connecte-toi) pour continuer.');return}
+S.me.sync=true;S.me.uid=uid;S.me.hp=!!rows[0].has_pin;
 if(S.me.ac){var code=S.me.ac,ok=await sb('POST','/rest/v1/rpc/claim_admin',{code:code});delete S.me.ac;if(ok)rows=[{admin:true}];else alert('Code administrateur incorrect.')}
 S.me.admin=!!rows[0].admin;save()}catch(e){}
 SYNCING=false;if(S.me&&!S.ob&&JSON.stringify([S.me,tab])!==before)render();if(S.me&&S.me.admin)adminBadge()}
@@ -168,27 +169,44 @@ return'<div class="row" style="align-items:center"><span data-open="'+esc(r.id)+
 refreshNav()}
 if(SB)setTimeout(syncMe,400);
 if(SB){setInterval(function(){if(!document.hidden)adminBadge()},60000);document.addEventListener('visibilitychange',function(){if(!document.hidden)adminBadge()})}
-function legalHTML(){return'<div class="mu" style="line-height:1.6">'+(SB?'Pour créer ton compte, ton <b>prénom, ton nom et ton entreprise</b> sont enregistrés en ligne et visibles par l’administrateur de ton entreprise, qui peut supprimer ton compte. Tes heures, tarifs et frais restent <b>sur ton téléphone</b>. Tu peux supprimer ton compte à tout moment dans Réglages. Pour créer un compte, tu dois accepter.':'Pour fonctionner, l’appli enregistre ton prénom, ton nom, ton entreprise, tes heures, tes tarifs et tes frais. Ces données restent <b>sur ton téléphone</b> : elles ne sont envoyées à aucun serveur aujourd’hui. Tu peux les modifier dans Réglages et les effacer à tout moment en supprimant les données du site dans ton navigateur. Pour créer un compte, tu dois accepter.')+'</div>'+
+function legalHTML(){return'<div class="mu" style="line-height:1.6">'+(SB?'Pour créer ton compte, ton <b>prénom, ton nom et ton entreprise</b> sont enregistrés en ligne et visibles par l’administrateur de ton entreprise, qui peut supprimer ton compte. Tes heures, tarifs et frais restent <b>sur ton téléphone</b>. Tu peux supprimer ton compte à tout moment dans Réglages. Ton code personnel est enregistré sous forme chiffrée et sert uniquement à te reconnecter. Pour créer un compte, tu dois accepter.':'Pour fonctionner, l’appli enregistre ton prénom, ton nom, ton entreprise, tes heures, tes tarifs et tes frais. Ces données restent <b>sur ton téléphone</b> : elles ne sont envoyées à aucun serveur aujourd’hui. Tu peux les modifier dans Réglages et les effacer à tout moment en supprimant les données du site dans ton navigateur. Pour créer un compte, tu dois accepter.')+'</div>'+
 '<details><summary>Mentions légales</summary><div class="mu" style="line-height:1.6;margin-top:8px"><b>Éditeur</b> : application gratuite et non commerciale, créée par Vincenzo De Pasquale.<br><b>Hébergement</b> : GitHub Pages (GitHub, Inc.)'+(SB?' ; base de données : Supabase, serveurs en Europe':'')+'.<br><b>Données traitées</b> : prénom, nom, entreprise, heures, tarifs et frais saisis. <b>Base légale</b> : ton consentement. <b>Durée</b> : '+(SB?'jusqu’à la suppression de ton compte, par toi ou par l’administrateur de ton entreprise.':'jusqu’à ce que tu effaces les données du site dans ton navigateur.')+'<br><b>Tes droits</b> (RGPD) : accès, rectification, effacement et retrait du consentement, que tu exerces directement dans l’appli (Réglages) ou en effaçant les données du site. '+(SB?'':'Si une fonction en ligne est ajoutée plus tard, tu en seras informé et ton accord sera demandé de nouveau.')+'<br><b>Estimations</b> : les montants affichés sont indicatifs, sans valeur contractuelle ; seule ta fiche de paie fait foi.</div></details>'}
+async function doLogin(p,n,e,pin,btn){btn.disabled=true;btn.textContent='Connexion…';var bad=function(m){var o=document.getElementById('oerr');if(o)o.textContent=m;btn.disabled=false;btn.textContent='Me connecter'};
+try{await sbAuth();var r=await sb('POST','/rest/v1/rpc/login_profile',{p_prenom:p,p_nom:n,p_ent:e,p_pin:pin});
+if(!r||!r.ok){bad(r&&r.err==='compte_verrouille'?'Trop d’essais : réessaie dans 15 minutes.':r&&r.err==='autre_compte'?'Cet appareil est déjà relié à un autre compte.':'Identifiants incorrects.');return}
+S.me={prenom:r.prenom,nom:r.nom,ent:r.ent,cs:r.cs,sync:true,uid:S.auth.uid,admin:!!r.admin,hp:true};S.ob=2;save();render()}
+catch(x){bad('Connexion impossible : vérifie ta connexion Internet.')}}
 function pn(x){return parseFloat(String(x).replace(',','.'))}
 function onboard(el){
 document.getElementById('nav').innerHTML='';
-var st=!S.me?(PEND?0:1):S.ob,q=function(k){return el.querySelector('[data-o="'+k+'"]')},
+var st=!S.me?(PEND?0:1):(S.ob||9),q=function(k){return el.querySelector('[data-o="'+k+'"]')},
 f=function(k,l,v){return'<label>'+l+'</label><input data-o="'+k+'" inputmode="decimal" placeholder="0,00" value="'+(v||'')+'">'},
 dots='<div class="dots">'+[1,2,3].map(function(n){return'<i class="'+(n<=Math.max(st,1)?'on':'')+'"></i>'}).join('')+'</div>',
 head=function(t,m){return'<div class="hero"><div class="logo">🚛</div><h1 style="margin-bottom:6px">'+t+'</h1><div class="mu">'+m+'</div></div>'+dots},
 err='<div class="mu" id="oerr" style="text-align:center;margin-top:10px"></div>',
 bad=function(m){document.getElementById('oerr').textContent=m};
-if(st===1){
-el.innerHTML=head('Connexion','Crée ton profil. Tout reste enregistré sur ton téléphone.')+'<div class="card"><label>Prénom</label><input id="op" autocomplete="given-name"><label>Nom</label><input id="on" autocomplete="family-name"><label>Entreprise</label><input id="oe" autocomplete="organization">'+(SB?'<label>Code administrateur (facultatif)</label><input id="oa" autocomplete="off" placeholder="Laisse vide si tu n’en as pas">':'')+'</div><button id="go">Continuer</button>'+err;
+if(st===1){var lg=SB&&MODE==='login';
+el.innerHTML=head(lg?'Me connecter':'Connexion',lg?'Retrouve ton compte avec ton code personnel.':'Crée ton profil. Tout reste enregistré sur ton téléphone.')+'<div class="card"><label>Prénom</label><input id="op" autocomplete="given-name"><label>Nom</label><input id="on" autocomplete="family-name"><label>Entreprise</label><input id="oe" autocomplete="organization">'+(SB?'<label>'+(lg?'Code personnel':'Choisis un code personnel (4 caractères minimum)')+'</label><input id="opin" type="password" autocomplete="off">':'')+(SB&&!lg?'<label>Code administrateur (facultatif)</label><input id="oa" autocomplete="off" placeholder="Laisse vide si tu n’en as pas">':'')+'</div><button id="go">'+(lg?'Me connecter':'Continuer')+'</button>'+err+(SB?'<div style="text-align:center;margin-top:14px"><a href="#" id="tg" style="color:var(--ac);font-weight:600">'+(lg?'Créer un compte':'J’ai déjà un compte')+'</a></div>':'');
 if(OBMSG){bad(OBMSG);OBMSG=''}
-document.getElementById('go').onclick=function(){var p=document.getElementById('op').value.trim(),n=document.getElementById('on').value.trim(),e=document.getElementById('oe').value.trim(),a=(document.getElementById('oa')||{value:''}).value.trim();
+if(SB)document.getElementById('tg').onclick=function(e){e.preventDefault();MODE=lg?'new':'login';render()};
+document.getElementById('go').onclick=function(){var v=function(i){return(document.getElementById(i)||{value:''}).value.trim()},p=v('op'),n=v('on'),e=v('oe'),pin=v('opin'),a=v('oa');
 if(!p||!n||!e){bad('Merci de remplir prénom, nom et entreprise.');return}
-PEND={prenom:p,nom:n,ent:e,ac:a};render()}}
+if(SB&&pin.length<4){bad('Le code personnel doit faire 4 caractères minimum.');return}
+if(lg){doLogin(p,n,e,pin,this);return}
+PEND={prenom:p,nom:n,ent:e,ac:a,pin:pin};render()}}
 else if(st===0){
-el.innerHTML=head('Tes données personnelles','Avant de créer ton compte, lis ce qui suit puis fais ton choix.')+'<div class="card">'+legalHTML()+'</div><button id="ok">J’accepte</button><button class="s" id="no">Je refuse</button>';
-document.getElementById('ok').onclick=function(){S.me={prenom:PEND.prenom,nom:PEND.nom,ent:PEND.ent,cs:iso(new Date())};if(PEND.ac)S.me.ac=PEND.ac;PEND=null;S.ob=2;save();render();syncMe()};
+el.innerHTML=head('Tes données personnelles','Avant de créer ton compte, lis ce qui suit puis fais ton choix.')+'<div class="card">'+legalHTML()+'</div><button id="ok">J’accepte</button><button class="s" id="no">Je refuse</button><div class="mu" id="oerr2" style="text-align:center;margin-top:10px"></div>';
+document.getElementById('ok').onclick=function(){var b=this;b.disabled=true;b.textContent='Création du compte…';
+var fin=function(){S.me={prenom:PEND.prenom,nom:PEND.nom,ent:PEND.ent,cs:iso(new Date())};if(SB){S.me.sync=true;S.me.uid=S.auth.uid;S.me.hp=true;if(PEND.ac)S.me.ac=PEND.ac}PEND=null;S.ob=2;save();render();if(SB)syncMe()};
+if(!SB){fin();return}
+sb('POST','/rest/v1/rpc/register_profile',{p_prenom:PEND.prenom,p_nom:PEND.nom,p_ent:PEND.ent,p_cs:iso(new Date()),p_pin:PEND.pin}).then(fin).catch(function(e){var t=(e&&e.body)||'';
+if(t.indexOf('compte_existant')>-1){PEND=null;MODE='login';OBMSG='Ce compte existe déjà : connecte-toi avec ton code personnel.';render()}
+else{b.disabled=false;b.textContent='J’accepte';var o=document.getElementById('oerr2');if(o)o.textContent='Création impossible : vérifie ta connexion et réessaie.'}})};
 document.getElementById('no').onclick=function(){PEND=null;OBMSG='Tu dois accepter pour créer un compte.';render()}}
+else if(st===9){
+el.innerHTML=head('Ton code personnel','Choisis un code (4 caractères minimum). Il te permettra de te reconnecter sur un autre téléphone sans créer un nouveau compte.')+'<div class="card"><label>Code personnel</label><input id="opin" type="password" autocomplete="off"></div><button id="go">Enregistrer mon code</button>'+err;
+document.getElementById('go').onclick=function(){var v=document.getElementById('opin').value.trim();if(v.length<4){bad('4 caractères minimum.');return}
+sb('POST','/rest/v1/rpc/set_pin',{p_pin:v}).then(function(ok){if(ok){S.me.hp=true;save();render()}else bad('Impossible d’enregistrer le code.')}).catch(function(){bad('Connexion impossible : réessaie.')})}}
 else if(st===2){
 el.innerHTML=head('Tes tarifs','Indique ton tarif de base, les majorations se calculent toute seules.')+'<div class="card">'+f('r1','Tarif de base €/h')+'<div id="ox" style="display:none"><div class="g2">'+f('r2','Tarif 125 % €/h')+f('r3','Tarif 150 % €/h')+'</div></div></div><div class="card"><div class="g2">'+f('t1','125 % à partir de (h)',S.set.t1)+f('t2','150 % à partir de (h)',S.set.t2)+'</div></div><button id="go">Continuer</button>'+err;
 var b=q('r1');b.oninput=function(){var v=pn(this.value),x=document.getElementById('ox');if(v>0){x.style.display='block';q('r2').value=Math.round(v*1250+1e-9)/1000;q('r3').value=Math.round(v*1500+1e-9)/1000}else x.style.display='none'};
@@ -203,7 +221,7 @@ function weekdays(y,m,upto){var c=0,n=new Date(y,m+1,0).getDate();for(var i=1;i<
 function V(h){return h.n?h.n:''}
 function render(){
 var el=document.getElementById('app'),h='';
-if(!S.me||S.ob){onboard(el);return}
+if(!S.me||S.ob||(SB&&S.me.sync&&S.me.hp===false)){onboard(el);return}
 if(tab==='jour'){
 var d=S.days[sel]||{h:0,m:'0',p:false,n:'0'};
 h+=hello()+'<div class="card"><label>Date</label><input type="date" id="dt" value="'+sel+'">'+
@@ -239,7 +257,7 @@ h+=hello()+(c.r1?'':'<div class="card"><div class="mu">Renseigne tes taux et ind
 if(tab==='admin'&&S.me.admin){h+='<h1>Administration</h1><div class="card" id="adm"><div class="mu">Chargement…</div></div>'}
 if(tab==='reglages'){
 var c=S.set,f=function(k,l){return'<label>'+l+'</label><input data-s="'+k+'" inputmode="decimal" value="'+c[k]+'">'};
-h+='<h1>Réglages</h1><div class="card"><h2>Mon profil</h2>'+pf('prenom','Prénom')+pf('nom','Nom')+pf('ent','Entreprise',S.me.sync)+(S.me.admin?'<div class="mu" style="margin-top:12px">🔑 Mode administrateur activé</div>':'')+'<details><summary>Mentions légales et données</summary><div style="margin-top:8px">'+legalHTML()+'</div></details>'+(S.me.sync?'<button class="s" id="delme" style="color:#e5484d">Supprimer mon compte</button>':'')+'</div><div class="card"><h2>Taux horaires</h2><div class="g2">'+f('r1','Tarif de base €/h')+f('r2','Tarif 125 % €/h')+f('r3','Tarif 150 % €/h')+f('t1','125 % à partir de (h)')+f('t2','150 % à partir de (h)')+'</div></div>'+
+h+='<h1>Réglages</h1><div class="card"><h2>Mon profil</h2>'+pf('prenom','Prénom',S.me.sync)+pf('nom','Nom',S.me.sync)+pf('ent','Entreprise',S.me.sync)+(S.me.admin?'<div class="mu" style="margin-top:12px">🔑 Mode administrateur activé</div>':'')+'<details><summary>Mentions légales et données</summary><div style="margin-top:8px">'+legalHTML()+'</div></details>'+(S.me.sync?'<button class="s" id="delme" style="color:#e5484d">Supprimer mon compte</button>':'')+'</div><div class="card"><h2>Taux horaires</h2><div class="g2">'+f('r1','Tarif de base €/h')+f('r2','Tarif 125 % €/h')+f('r3','Tarif 150 % €/h')+f('t1','125 % à partir de (h)')+f('t2','150 % à partir de (h)')+'</div></div>'+
 '<div class="card"><h2>Indemnités (€)</h2><div class="g2">'+f('mf','Repas France')+f('me','Repas étranger')+f('pd','Casse-croûte')+f('nf','Nuit France')+f('ne','Nuit étranger')+'</div></div>'+
 '<div class="card"><h2>Mois précédents (fiches de paie)</h2><label>Mois</label><input type="month" id="hm"><label>Heures payées (ex. 165h30)</label><input id="hv" placeholder="0h00"><label>Montant total reçu (€, frais compris)</label><input id="he" inputmode="decimal" placeholder="0,00"><label>Dont frais / indemnités (€)</label><input id="hf" inputmode="decimal" placeholder="0,00"><button class="s" id="ah">Ajouter ce mois</button><div style="margin-top:8px">'+
 Object.keys(S.hist).sort().reverse().map(function(k){var x=S.hist[k];return'<div class="row"><span>'+k+'</span><span style="text-align:right"><b>'+eur(x.e)+'</b><div class="mu">'+fh(x.p)+' payées <span class="x" data-dh="'+k+'">✕</span></div></span></div>'}).join('')+histSummary()+'</div></div>';
@@ -254,7 +272,7 @@ document.getElementById('sv').onclick=function(){S.days[sel]={h:parseH(document.
 if(tab==='reglages'){var ap=function(inp){var v=parseFloat(String(inp.value).replace(',','.')),k=inp.dataset.s;if(isNaN(v))return;S.set[k]=v;if(k==='r1'){S.set.r2=Math.round(v*1250+1e-9)/1000;S.set.r3=Math.round(v*1500+1e-9)/1000;var q2=el.querySelector('[data-s="r2"]'),q3=el.querySelector('[data-s="r3"]');if(q2)q2.value=S.set.r2;if(q3)q3.value=S.set.r3}save()};
 [].forEach.call(el.querySelectorAll('[data-s]'),function(i){i.oninput=function(){ap(this)};i.onchange=function(){ap(this)}});
 document.getElementById('ah').onclick=function(){var m=document.getElementById('hm').value,p=parseH(document.getElementById('hv').value),e=parseFloat(document.getElementById('he').value.replace(',','.'))||0;if(m&&(p||e)){S.hist[m]={p:p,e:e,f:parseFloat(document.getElementById('hf').value.replace(',','.'))||0};save();render()}};var dm=document.getElementById('delme');if(dm)dm.onclick=function(){if(confirm('Supprimer ton compte en ligne ? Tes données saisies sur ce téléphone restent.'))sb('DELETE','/rest/v1/profiles?id=eq.'+S.me.uid).then(function(){S.me=null;S.ob=0;S.auth=null;OBMSG='Ton compte a été supprimé.';save();render()}).catch(function(){alert('Suppression impossible pour le moment : vérifie ta connexion.')})};
-[].forEach.call(el.querySelectorAll('[data-me]'),function(i){i.onchange=function(){S.me[this.dataset.me]=this.value.trim()||S.me[this.dataset.me];save();if(S.me.sync&&this.dataset.me!=='ent')sb('PATCH','/rest/v1/profiles?id=eq.'+S.me.uid,{prenom:S.me.prenom,nom:S.me.nom}).catch(function(){})}});
+[].forEach.call(el.querySelectorAll('[data-me]'),function(i){i.onchange=function(){S.me[this.dataset.me]=this.value.trim()||S.me[this.dataset.me];save()}});
 [].forEach.call(el.querySelectorAll('[data-dh]'),function(b){b.onclick=function(){delete S.hist[b.dataset.dh];save();render()}})}
 var T2=[['jour','<span class="ic">📅</span>Jour'],['semaine','<span class="ic">🗓️</span>Semaines'],['mois','<span class="ic">💶</span>Mois'],['reglages','<span class="ic">⚙️</span>Réglages']];
 if(S.me.admin)T2.push(['admin','<span class="ic">🔑</span>Admin']);
