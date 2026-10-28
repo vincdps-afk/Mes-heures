@@ -50,7 +50,7 @@ nav a .ic{display:block;font-size:20px;line-height:1.2}
 nav a.on{color:var(--ac);font-weight:700;background:var(--bg)}
 .x{color:#e5484d;cursor:pointer;margin-left:8px}
 .ok{color:#1f9d55;font-weight:600;margin-top:12px;font-size:14px}.pill{background:#e5484d;color:#fff;border-radius:10px;font-size:12px;font-style:normal;font-weight:700;padding:1px 8px}.bd{position:absolute;top:2px;right:16%;background:#e5484d;color:#fff;border-radius:10px;min-width:18px;height:18px;font-size:11px;font-style:normal;font-weight:700;line-height:18px;padding:0 5px}.wcard{background:var(--bg);border-radius:16px;padding:14px;margin-top:10px}
-.mo>summary{font-size:15px;margin-top:12px}details.wk{margin:4px 0 0 10px}.wk>summary{color:var(--tx);font-weight:500;margin-top:8px}
+.mo>summary{font-size:15px;margin-top:12px}details.wk{margin:4px 0 0 10px}.wk>summary{color:var(--tx);font-weight:500;margin-top:8px}.mo>summary,.wk>summary{display:flex;align-items:center;gap:8px}.sv{margin-left:auto;font-weight:500;color:var(--tx);font-size:14px;text-align:right}.wkrow{display:flex;justify-content:space-between;padding:10px 0 4px 10px;font-size:15px}.no{opacity:.45}.tb{width:100%;border-collapse:collapse;font-size:13px}.tb th,.tb td{padding:7px 4px;border-bottom:1px solid var(--bd);text-align:left}.tb th{color:var(--mu);font-weight:600}.tt td{font-weight:700;border-bottom:0}
 .dots{display:flex;gap:8px;justify-content:center;margin:0 0 18px}.dots i{width:28px;height:6px;border-radius:3px;background:var(--bd)}.dots i.on{background:var(--ac)}
 </style>
 <script>
@@ -111,7 +111,7 @@ S.me.sync=true;S.me.uid=uid;
 if(S.me.ac){var code=S.me.ac,ok=await sb('POST','/rest/v1/rpc/claim_admin',{code:code});delete S.me.ac;if(ok)rows=[{admin:true}];else alert('Code administrateur incorrect.')}
 S.me.admin=!!rows[0].admin;save()}catch(e){}
 SYNCING=false;if(S.me&&!S.ob&&JSON.stringify([S.me,tab])!==before)render();if(S.me&&S.me.admin)adminBadge()}
-var ADM={n:0,open:{},w:{}};
+var ADM={n:0,open:{},w:{},year:new Date().getFullYear()};
 function refreshNav(){var a=document.querySelector('nav a[data-t="admin"]');if(!a)return;var b=a.querySelector('.bd');if(ADM.n){if(!b){b=document.createElement('i');b.className='bd';a.appendChild(b)}b.textContent=ADM.n}else if(b)b.parentNode.removeChild(b)}
 async function adminBadge(){if(!SB||!S.me||!S.me.admin||!S.me.uid)return;try{var r=await sb('GET','/rest/v1/weeks?select=id&seen=eq.false&user_id=neq.'+S.me.uid);ADM.n=r.length;refreshNav()}catch(e){}}
 function toast(m,bad){var d=document.createElement('div');d.textContent=m;d.style.cssText='position:fixed;left:16px;right:16px;bottom:100px;z-index:9;padding:14px 16px;border-radius:16px;color:#fff;text-align:center;font-weight:600;box-shadow:0 8px 28px rgba(0,0,0,.25);background:'+(bad?'#e5484d':'#1f9d55');document.body.appendChild(d);setTimeout(function(){if(d.parentNode)d.parentNode.removeChild(d)},3500)}
@@ -127,14 +127,26 @@ async function sendWeek(k,btn){var ds=weekData(k);if(!ds.length)return;var old=b
 try{var tot=ds.reduce(function(s,d){return s+d.h},0),t=await sb('POST','/rest/v1/rpc/send_week',{p_week:k,p_days:ds,p_total:tot});
 S.sent[k]={t:t||new Date().toISOString(),sig:JSON.stringify(ds)};save();toast('✅ Semaine transmise aux bureaux');render()}
 catch(e){btn.disabled=false;btn.textContent=old;toast('❌ Transmission impossible : vérifie ta connexion et réessaie',1)}}
-function weekDays(w){return(w.days||[]).map(function(x){var p=dayLine(x).split(' · ');return'<div class="row" style="padding:8px 0"><span>'+esc(p[0])+'</span><span style="text-align:right">'+esc(p.slice(1).join(' · '))+'</span></div>'}).join('')}
-function weekCard(r,w){return'<div class="wcard"><div class="mu">Envoyée le '+fdt(w.sent_at)+'</div>'+weekDays(w)+'<div class="mu" style="margin-top:8px"><b>Total : '+weekCodes(w.days)+'</b></div><div style="display:flex;gap:8px;margin-top:10px"><button class="s" style="margin:0" data-copy="'+esc(w.id)+'">Copier</button>'+(w.seen?'':'<button style="margin:0" data-seen="'+esc(w.id)+'">Marquer comme vu</button>')+'</div></div>'}
 function weekText(r,w){var d=pd(w.week);return r.prenom+' '+r.nom+' — semaine du '+d.getDate()+'/'+(d.getMonth()+1)+' ('+fh(w.total_h||0)+')\n'+(w.days||[]).map(dayLine).join('\n')+'\nTotal : '+weekCodes(w.days)+'\n('+LEG+')'}
 var MN=['Janvier','Février','Mars','Avril','Mai','Juin','Juillet','Août','Septembre','Octobre','Novembre','Décembre'];
 function cs(days){var c=weekCodes(days);return c==='aucun'?'':' · '+c}
-function monthsHTML(r,ws){var g={},order=[];ws.slice().sort(function(a,b){return a.week<b.week?1:-1}).forEach(function(w){var k=w.week.slice(0,7);if(!g[k]){g[k]=[];order.push(k)}g[k].push(w)});
-return order.map(function(k){var L=g[k],nw=L.filter(function(w){return!w.seen}).length,ok='m'+r.id+k,th=0,all=[];L.forEach(function(w){th+=+w.total_h||0;all=all.concat(w.days||[])});
-return'<details class="mo" data-k="'+esc(ok)+'"'+(ADM.open[ok]?' open':'')+'><summary>'+MN[+k.slice(5)-1]+' '+k.slice(0,4)+' · '+fh(th)+cs(all)+(nw&&r.id!==S.me.uid?' <i class="pill">+'+nw+'</i>':'')+'</summary>'+L.map(function(w){var d=pd(w.week),wk='w'+w.id;return'<details class="wk" data-k="'+esc(wk)+'"'+(ADM.open[wk]?' open':'')+'><summary>Semaine du '+d.getDate()+'/'+(d.getMonth()+1)+' · '+fh(w.total_h||0)+cs(w.days)+(w.seen?'':' <i class="pill">nouveau</i>')+'</summary>'+weekCard(r,w)+'</details>'}).join('')+'</details>'}).join('')||'<div class="mu" style="margin-top:6px">Aucune semaine reçue.</div>'}
+function mondaysOf(y,m){var o=[],n=new Date(y,m+1,0).getDate();for(var i=1;i<=n;i++){var d=new Date(y,m,i);if(d.getDay()===1)o.push(iso(d))}return o}
+function sumDays(ws){var th=0,all=[];ws.forEach(function(w){th+=+w.total_h||0;all=all.concat(w.days||[])});return{h:th,all:all}}
+function cell(n,k){return n?n+' '+k:''}
+function dayRow(x,date){var L=['Dim','Lun','Mar','Mer','Jeu','Ven','Sam'][pd(date).getDay()]+' '+date.slice(8)+'/'+date.slice(5,7);
+if(!x)return'<tr class="no"><td>'+L+'</td><td>—</td><td></td><td></td><td></td></tr>';var c=codes(x);
+return'<tr><td>'+L+'</td><td>'+fh(x.h)+'</td><td>'+[cell(c.rf,'rf'),cell(c.re,'re')].filter(Boolean).join(' ')+'</td><td>'+(c.cc?'cc':'')+'</td><td>'+[cell(c.nf,'nf'),cell(c.ne,'ne')].filter(Boolean).join(' ')+'</td></tr>'}
+function weekTable(r,w,mon){var by={},rows='',d0=pd(mon);(w.days||[]).forEach(function(x){by[x.d]=x});
+for(var i=0;i<7;i++){var d=new Date(d0);d.setDate(d0.getDate()+i);var k=iso(d);if(i<6||by[k])rows+=dayRow(by[k],k)}
+var t=weekCodes(w.days);
+return'<div class="wcard"><table class="tb"><tr><th>Jour</th><th>Heures</th><th>Repas</th><th>CC</th><th>Nuit</th></tr>'+rows+'<tr class="tt"><td>Total</td><td>'+fh(w.total_h||0)+'</td><td colspan="3">'+(t==='aucun'?'':t)+'</td></tr></table><div class="mu" style="margin-top:8px">Transmise le '+fdt(w.sent_at)+'</div><div style="display:flex;gap:8px;margin-top:10px"><button class="s" style="margin:0" data-copy="'+esc(w.id)+'">Copier</button>'+(w.seen?'':'<button style="margin:0" data-seen="'+esc(w.id)+'">Marquer comme vu</button>')+'</div></div>'}
+function monthsHTML(r,ws){var Y=ADM.year,byw={},o='';ws.forEach(function(w){byw[w.week]=w});
+for(var m=0;m<12;m++){var mons=mondaysOf(Y,m),L=mons.map(function(k){return byw[k]}).filter(Boolean),sm=sumDays(L),nw=L.filter(function(w){return!w.seen}).length,ok='m'+r.id+Y+m;
+o+='<details class="mo" data-k="'+ok+'"'+(ADM.open[ok]?' open':'')+'><summary><span>'+MN[m]+'</span><span class="sv">'+(L.length?fh(sm.h)+cs(sm.all):'—')+(nw&&r.id!==S.me.uid?' <i class="pill">+'+nw+'</i>':'')+'</span></summary>'+
+mons.map(function(k,i){var w=byw[k],d=pd(k),e=new Date(d);e.setDate(d.getDate()+5);var lab='Semaine '+(i+1)+' <span class="mu">'+d.getDate()+'/'+(d.getMonth()+1)+' – '+e.getDate()+'/'+(e.getMonth()+1)+'</span>';
+if(!w)return'<div class="wkrow no"><span>'+lab+'</span><span class="sv">—</span></div>';
+var wk='w'+w.id;return'<details class="wk" data-k="'+esc(wk)+'"'+(ADM.open[wk]?' open':'')+'><summary><span>'+lab+'</span><span class="sv">'+fh(w.total_h||0)+cs(w.days)+(w.seen?'':' <i class="pill">nouveau</i>')+'</span></summary>'+weekTable(r,w,k)+'</details>'}).join('')+'</details>'}
+return o}
 async function adminLoad(){var box=document.getElementById('adm');if(!box)return;
 try{ADM.P=await sb('GET','/rest/v1/profiles?select=id,prenom,nom,ent,created_at&order=created_at.desc');ADM.Wk=await sb('GET','/rest/v1/weeks?select=id,user_id,week,days,total_h,sent_at,seen&order=sent_at.desc');
 ADM.n=ADM.Wk.filter(function(w){return!w.seen&&w.user_id!==S.me.uid}).length;adminRender()}
@@ -142,8 +154,9 @@ catch(e){box.innerHTML='<div class="mu">Liste indisponible (vérifie ta connexio
 function adminRender(){var box=document.getElementById('adm');if(!box||!ADM.P)return;var by={};ADM.w={};ADM.Wk.forEach(function(w){(by[w.user_id]=by[w.user_id]||[]).push(w)});
 var pick=ADM.view?ADM.P.filter(function(r){return r.id===ADM.view})[0]:null;
 if(pick){var ws=by[pick.id]||[];ws.forEach(function(w){ADM.w[w.id]={r:pick,w:w}});
-box.innerHTML='<div id="back" style="color:var(--ac);font-weight:600;cursor:pointer;margin-bottom:12px">← Retour</div><h2 style="margin:0 0 4px;font-size:18px;text-transform:none;letter-spacing:0;color:var(--tx)">'+esc(pick.prenom)+' '+esc(pick.nom)+'</h2><div class="mu" style="margin-bottom:6px">'+LEG+'</div>'+monthsHTML(pick,ws);
-document.getElementById('back').onclick=function(){ADM.view=null;adminRender()}}
+box.innerHTML='<div id="back" style="color:var(--ac);font-weight:600;cursor:pointer;margin-bottom:12px">← Retour</div><h2 style="margin:0 0 4px;font-size:18px;text-transform:none;letter-spacing:0;color:var(--tx)">'+esc(pick.prenom)+' '+esc(pick.nom)+'</h2><div style="display:flex;justify-content:space-between;align-items:center;margin:8px 0 4px"><span id="yp" style="color:var(--ac);font-size:26px;cursor:pointer;padding:0 10px">‹</span><b>'+ADM.year+'</b><span id="yn" style="color:var(--ac);font-size:26px;cursor:pointer;padding:0 10px">›</span></div>'+monthsHTML(pick,ws);
+document.getElementById('back').onclick=function(){ADM.view=null;adminRender()};
+document.getElementById('yp').onclick=function(){ADM.year--;adminRender()};document.getElementById('yn').onclick=function(){ADM.year++;adminRender()}}
 else{ADM.view=null;
 box.innerHTML=ADM.P.length?ADM.P.map(function(r){var me=r.id===S.me.uid,nw=(by[r.id]||[]).filter(function(w){return!w.seen}).length;
 return'<div class="row" style="align-items:center"><span data-open="'+esc(r.id)+'" style="flex:1;cursor:pointer;font-weight:600">'+esc(r.prenom)+' '+esc(r.nom)+(nw&&!me?' <i class="pill">+'+nw+'</i>':'')+'</span>'+(me?'':'<span class="x" data-id="'+esc(r.id)+'" data-nm="'+esc(r.prenom+' '+r.nom)+'" style="font-size:22px;padding:0 6px">✕</span>')+'</div>'}).join(''):'<div class="mu">Aucun inscrit.</div>';
