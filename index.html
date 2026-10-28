@@ -47,6 +47,9 @@ nav a.on{color:var(--ac);font-weight:700;background:var(--bg)}
 .x{color:#e5484d;cursor:pointer;margin-left:8px}
 .dots{display:flex;gap:8px;justify-content:center;margin:0 0 18px}.dots i{width:28px;height:6px;border-radius:3px;background:var(--bd)}.dots i.on{background:var(--ac)}
 </style>
+<script>
+setTimeout(function(){var a=document.getElementById("app");if(a&&!a.innerHTML.trim()){document.body.innerHTML='<div style="font:16px system-ui;padding:28px;text-align:center"><h2>Un problème est survenu</h2><p>L’appli n’a pas pu démarrer. Tes données ne sont pas effacées.</p><button id="fx" style="padding:14px 22px;font-size:16px;border:0;border-radius:14px;background:#2f6df6;color:#fff">Réparer et relancer</button><p><a href="#" id="fy" style="color:#e5484d;font-size:14px">Effacer mes données et recommencer</a></p></div>';var clean=function(){var p=[];if(navigator.serviceWorker)p.push(navigator.serviceWorker.getRegistrations().then(function(r){return Promise.all(r.map(function(x){return x.unregister()}))}));if(window.caches)p.push(caches.keys().then(function(k){return Promise.all(k.map(function(x){return caches.delete(x)}))}));return Promise.all(p)};document.getElementById("fx").onclick=function(){clean().then(function(){location.reload()})};document.getElementById("fy").onclick=function(e){e.preventDefault();if(confirm("Effacer toutes tes données sur cet appareil ?")){try{localStorage.clear()}catch(x){}clean().then(function(){location.reload()})}}}},2500);
+</script>
 </head>
 <body>
 <main id="app"></main>
@@ -79,20 +82,29 @@ return'<div class="sec"><h3>Net potentiel</h3>'+(rt?rw('Net estimé',rt*h+f)+'<d
 function esc(x){return String(x==null?'':x).replace(/[&<>"]/g,function(c){return{'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]})}
 function hello(){return'<div class="hi"><div class="mu">'+esc(S.me.ent)+'</div><div class="hn">Bonjour '+esc(S.me.prenom)+' 👋</div></div>'}
 function pf(k,l){return'<label>'+l+'</label><input data-me="'+k+'" value="'+esc(S.me[k])+'">'}
+var PEND=null,OBMSG='',ADMIN_CODE='0152';
+function legalHTML(){return'<div class="mu" style="line-height:1.6">Pour fonctionner, l’appli enregistre ton prénom, ton nom, ton entreprise, tes heures, tes tarifs et tes frais. Ces données restent <b>sur ton téléphone</b> : elles ne sont envoyées à aucun serveur aujourd’hui. Tu peux les modifier dans Réglages et les effacer à tout moment en supprimant les données du site dans ton navigateur. Pour créer un compte, tu dois accepter.</div>'+
+'<details><summary>Mentions légales</summary><div class="mu" style="line-height:1.6;margin-top:8px"><b>Éditeur</b> : application gratuite et non commerciale, créée par Vincenzo De Pasquale.<br><b>Hébergement</b> : GitHub Pages (GitHub, Inc.).<br><b>Données traitées</b> : prénom, nom, entreprise, heures, tarifs et frais saisis. <b>Base légale</b> : ton consentement. <b>Durée</b> : jusqu’à ce que tu effaces les données du site dans ton navigateur.<br><b>Tes droits</b> (RGPD) : accès, rectification, effacement et retrait du consentement, que tu exerces directement dans l’appli (Réglages) ou en effaçant les données du site. Si une fonction en ligne est ajoutée plus tard, tu en seras informé et ton accord sera demandé de nouveau.<br><b>Estimations</b> : les montants affichés sont indicatifs, sans valeur contractuelle ; seule ta fiche de paie fait foi.</div></details>'}
 function pn(x){return parseFloat(String(x).replace(',','.'))}
 function onboard(el){
 document.getElementById('nav').innerHTML='';
-var st=!S.me?1:S.ob,q=function(k){return el.querySelector('[data-o="'+k+'"]')},
+var st=!S.me?(PEND?0:1):S.ob,q=function(k){return el.querySelector('[data-o="'+k+'"]')},
 f=function(k,l,v){return'<label>'+l+'</label><input data-o="'+k+'" inputmode="decimal" placeholder="0,00" value="'+(v||'')+'">'},
-dots='<div class="dots">'+[1,2,3].map(function(n){return'<i class="'+(n<=st?'on':'')+'"></i>'}).join('')+'</div>',
+dots='<div class="dots">'+[1,2,3].map(function(n){return'<i class="'+(n<=Math.max(st,1)?'on':'')+'"></i>'}).join('')+'</div>',
 head=function(t,m){return'<div class="hero"><div class="logo">🚛</div><h1 style="margin-bottom:6px">'+t+'</h1><div class="mu">'+m+'</div></div>'+dots},
 err='<div class="mu" id="oerr" style="text-align:center;margin-top:10px"></div>',
 bad=function(m){document.getElementById('oerr').textContent=m};
 if(st===1){
-el.innerHTML=head('Connexion','Crée ton profil. Tout reste enregistré sur ton téléphone.')+'<div class="card"><label>Prénom</label><input id="op" autocomplete="given-name"><label>Nom</label><input id="on" autocomplete="family-name"><label>Entreprise</label><input id="oe" autocomplete="organization"></div><button id="go">Continuer</button>'+err;
-document.getElementById('go').onclick=function(){var p=document.getElementById('op').value.trim(),n=document.getElementById('on').value.trim(),e=document.getElementById('oe').value.trim();
+el.innerHTML=head('Connexion','Crée ton profil. Tout reste enregistré sur ton téléphone.')+'<div class="card"><label>Prénom</label><input id="op" autocomplete="given-name"><label>Nom</label><input id="on" autocomplete="family-name"><label>Entreprise</label><input id="oe" autocomplete="organization"><label>Code administrateur (facultatif)</label><input id="oa" inputmode="numeric" autocomplete="off" placeholder="Laisse vide si tu n’en as pas"></div><button id="go">Continuer</button>'+err;
+if(OBMSG){bad(OBMSG);OBMSG=''}
+document.getElementById('go').onclick=function(){var p=document.getElementById('op').value.trim(),n=document.getElementById('on').value.trim(),e=document.getElementById('oe').value.trim(),a=document.getElementById('oa').value.trim();
 if(!p||!n||!e){bad('Merci de remplir prénom, nom et entreprise.');return}
-S.me={prenom:p,nom:n,ent:e};S.ob=2;save();render()}}
+if(a&&a!==ADMIN_CODE){bad('Code administrateur incorrect. Laisse le champ vide si tu n’en as pas.');return}
+PEND={prenom:p,nom:n,ent:e,admin:!!a};render()}}
+else if(st===0){
+el.innerHTML=head('Tes données personnelles','Avant de créer ton compte, lis ce qui suit puis fais ton choix.')+'<div class="card">'+legalHTML()+'</div><button id="ok">J’accepte</button><button class="s" id="no">Je refuse</button>';
+document.getElementById('ok').onclick=function(){S.me={prenom:PEND.prenom,nom:PEND.nom,ent:PEND.ent,cs:iso(new Date())};if(PEND.admin)S.me.admin=true;PEND=null;S.ob=2;save();render()};
+document.getElementById('no').onclick=function(){PEND=null;OBMSG='Tu dois accepter pour créer un compte.';render()}}
 else if(st===2){
 el.innerHTML=head('Tes tarifs','Indique ton tarif de base, les majorations se calculent toute seules.')+'<div class="card">'+f('r1','Tarif de base €/h')+'<div id="ox" style="display:none"><div class="g2">'+f('r2','Tarif 125 % €/h')+f('r3','Tarif 150 % €/h')+'</div></div></div><div class="card"><div class="g2">'+f('t1','125 % à partir de (h)',S.set.t1)+f('t2','150 % à partir de (h)',S.set.t2)+'</div></div><button id="go">Continuer</button>'+err;
 var b=q('r1');b.oninput=function(){var v=pn(this.value),x=document.getElementById('ox');if(v>0){x.style.display='block';q('r2').value=Math.round(v*1250+1e-9)/1000;q('r3').value=Math.round(v*1500+1e-9)/1000}else x.style.display='none'};
@@ -142,7 +154,7 @@ h+=hello()+(c.r1?'':'<div class="card"><div class="mu">Renseigne tes taux et ind
 }
 if(tab==='reglages'){
 var c=S.set,f=function(k,l){return'<label>'+l+'</label><input data-s="'+k+'" inputmode="decimal" value="'+c[k]+'">'};
-h+='<h1>Réglages</h1><div class="card"><h2>Mon profil</h2>'+pf('prenom','Prénom')+pf('nom','Nom')+pf('ent','Entreprise')+'</div><div class="card"><h2>Taux horaires</h2><div class="g2">'+f('r1','Tarif de base €/h')+f('r2','Tarif 125 % €/h')+f('r3','Tarif 150 % €/h')+f('t1','125 % à partir de (h)')+f('t2','150 % à partir de (h)')+'</div></div>'+
+h+='<h1>Réglages</h1><div class="card"><h2>Mon profil</h2>'+pf('prenom','Prénom')+pf('nom','Nom')+pf('ent','Entreprise')+(S.me.admin?'<div class="mu" style="margin-top:12px">🔑 Mode administrateur activé</div>':'')+'<details><summary>Mentions légales et données</summary><div style="margin-top:8px">'+legalHTML()+'</div></details></div><div class="card"><h2>Taux horaires</h2><div class="g2">'+f('r1','Tarif de base €/h')+f('r2','Tarif 125 % €/h')+f('r3','Tarif 150 % €/h')+f('t1','125 % à partir de (h)')+f('t2','150 % à partir de (h)')+'</div></div>'+
 '<div class="card"><h2>Indemnités (€)</h2><div class="g2">'+f('mf','Repas France')+f('me','Repas étranger')+f('pd','Casse-croûte')+f('nf','Nuit France')+f('ne','Nuit étranger')+'</div></div>'+
 '<div class="card"><h2>Mois précédents (fiches de paie)</h2><label>Mois</label><input type="month" id="hm"><label>Heures payées (ex. 165h30)</label><input id="hv" placeholder="0h00"><label>Montant total reçu (€, frais compris)</label><input id="he" inputmode="decimal" placeholder="0,00"><label>Dont frais / indemnités (€)</label><input id="hf" inputmode="decimal" placeholder="0,00"><button class="s" id="ah">Ajouter ce mois</button><div style="margin-top:8px">'+
 Object.keys(S.hist).sort().reverse().map(function(k){var x=S.hist[k];return'<div class="row"><span>'+k+'</span><span style="text-align:right"><b>'+eur(x.e)+'</b><div class="mu">'+fh(x.p)+' payées <span class="x" data-dh="'+k+'">✕</span></div></span></div>'}).join('')+histSummary()+'</div></div>';
