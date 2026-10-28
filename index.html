@@ -3,6 +3,10 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-title" content="Mes heures">
+<meta name="apple-mobile-web-app-status-bar-style" content="default">
 <link rel="manifest" href="manifest.json">
 <meta name="theme-color" content="#2f6df6">
 <link rel="apple-touch-icon" href="icon-192.png">
@@ -41,10 +45,11 @@ summary::-webkit-details-marker{display:none}
 summary::after{content:" ▾"}details[open] summary::after{content:" ▴"}
 .sec{margin-top:6px}
 nav{position:fixed;left:14px;right:14px;bottom:calc(12px + env(safe-area-inset-bottom,0px));display:flex;background:var(--card);border:1px solid var(--bd);border-radius:26px;box-shadow:0 10px 34px rgba(20,30,60,.16);padding:6px;max-width:532px;margin:auto}
-nav a{flex:1;text-align:center;padding:9px 2px;font-size:12px;color:var(--mu);text-decoration:none;border-radius:20px}
+nav a{position:relative;flex:1;text-align:center;padding:9px 2px;font-size:12px;color:var(--mu);text-decoration:none;border-radius:20px}
 nav a .ic{display:block;font-size:20px;line-height:1.2}
 nav a.on{color:var(--ac);font-weight:700;background:var(--bg)}
 .x{color:#e5484d;cursor:pointer;margin-left:8px}
+.ok{color:#1f9d55;font-weight:600;margin-top:12px;font-size:14px}.pill{background:#e5484d;color:#fff;border-radius:10px;font-size:12px;font-style:normal;font-weight:700;padding:1px 8px}.bd{position:absolute;top:2px;right:16%;background:#e5484d;color:#fff;border-radius:10px;min-width:18px;height:18px;font-size:11px;font-style:normal;font-weight:700;line-height:18px;padding:0 5px}.wcard{background:var(--bg);border-radius:16px;padding:14px;margin-top:10px}
 .dots{display:flex;gap:8px;justify-content:center;margin:0 0 18px}.dots i{width:28px;height:6px;border-radius:3px;background:var(--bd)}.dots i.on{background:var(--ac)}
 </style>
 <script>
@@ -60,7 +65,7 @@ var D={r1:0,r2:0,r3:0,t1:152,t2:185,mf:16.36,me:19.3,pd:8.87,nf:35.95,ne:42.42};
 var S={days:{},set:Object.assign({},D),hist:{}};
 try{var s=JSON.parse(localStorage.getItem('vh')||'null');if(s){S.days=s.days||{};S.set=Object.assign({},D,s.set||{});S.hist=s.hist||{}}}catch(e){}
 for(var h0 in S.hist){if(typeof S.hist[h0]==='number')S.hist[h0]={p:S.hist[h0],e:0}}
-S.me=(s&&s.me)||null;S.ob=(s&&s.ob)||0;S.auth=(s&&s.auth)||null;
+S.me=(s&&s.me)||null;S.ob=(s&&s.ob)||0;S.auth=(s&&s.auth)||null;S.sent=(s&&s.sent)||{};
 function save(){try{localStorage.setItem('vh',JSON.stringify(S))}catch(e){}}
 var tab='jour',sel=iso(new Date());
 function iso(d){var m=d.getMonth()+1,j=d.getDate();return d.getFullYear()+'-'+(m<10?'0':'')+m+'-'+(j<10?'0':'')+j}
@@ -104,13 +109,35 @@ await sb('POST','/rest/v1/profiles',{id:uid,prenom:S.me.prenom,nom:S.me.nom,ent:
 S.me.sync=true;S.me.uid=uid;
 if(S.me.ac){var code=S.me.ac,ok=await sb('POST','/rest/v1/rpc/claim_admin',{code:code});delete S.me.ac;if(ok)rows=[{admin:true}];else alert('Code administrateur incorrect.')}
 S.me.admin=!!rows[0].admin;save()}catch(e){}
-SYNCING=false;if(S.me&&!S.ob&&JSON.stringify([S.me,tab])!==before)render()}
+SYNCING=false;if(S.me&&!S.ob&&JSON.stringify([S.me,tab])!==before)render();if(S.me&&S.me.admin)adminBadge()}
+var ADM={n:0,open:{},w:{}};
+function refreshNav(){var a=document.querySelector('nav a[data-t="admin"]');if(!a)return;var b=a.querySelector('.bd');if(ADM.n){if(!b){b=document.createElement('i');b.className='bd';a.appendChild(b)}b.textContent=ADM.n}else if(b)b.parentNode.removeChild(b)}
+async function adminBadge(){if(!SB||!S.me||!S.me.admin||!S.me.uid)return;try{var r=await sb('GET','/rest/v1/weeks?select=id&seen=eq.false&user_id=neq.'+S.me.uid);ADM.n=r.length;refreshNav()}catch(e){}}
+function toast(m,bad){var d=document.createElement('div');d.textContent=m;d.style.cssText='position:fixed;left:16px;right:16px;bottom:100px;z-index:9;padding:14px 16px;border-radius:16px;color:#fff;text-align:center;font-weight:600;box-shadow:0 8px 28px rgba(0,0,0,.25);background:'+(bad?'#e5484d':'#1f9d55');document.body.appendChild(d);setTimeout(function(){if(d.parentNode)d.parentNode.removeChild(d)},3500)}
+function fdt(t){var d=new Date(t);return d.toLocaleDateString('fr-FR')+' à '+d.toLocaleTimeString('fr-FR',{hour:'2-digit',minute:'2-digit'})}
+function weekData(k){var o=[];Object.keys(S.days).sort().forEach(function(d){if(iso(monday(pd(d)))===k){var x=S.days[d];o.push({d:d,h:Math.round((x.h||0)*100)/100,m:x.m||'0',m2:x.m2||'0',p:!!x.p,n:x.n||'0'})}});return o}
+function dayLine(x){var L={fr:'France',et:'étranger'},p=[fh(x.h)];if(x.m&&x.m!=='0')p.push('midi '+L[x.m]);if(x.m2&&x.m2!=='0')p.push('soir '+L[x.m2]);if(x.p)p.push('casse-croûte');if(x.n&&x.n!=='0')p.push('nuit '+L[x.n]);return['Dim','Lun','Mar','Mer','Jeu','Ven','Sam'][pd(x.d).getDay()]+' '+x.d.slice(8)+'/'+x.d.slice(5,7)+' · '+p.join(' · ')}
+function sendBlock(k){if(!SB||!S.me.sync)return'';var st=S.sent[k];if(st&&st.sig===JSON.stringify(weekData(k)))return'<div class="ok">✅ Envoyé à l’administrateur le '+fdt(st.t)+'</div>';return'<button class="s" data-send="'+k+'" style="margin-top:12px">'+(st?'Renvoyer (modifié depuis l’envoi)':'Envoyer à l’admin')+'</button>'}
+async function sendWeek(k,btn){var ds=weekData(k);if(!ds.length)return;var old=btn.textContent;btn.disabled=true;btn.textContent='Envoi…';
+try{var tot=ds.reduce(function(s,d){return s+d.h},0),t=await sb('POST','/rest/v1/rpc/send_week',{p_week:k,p_days:ds,p_total:tot});
+S.sent[k]={t:t||new Date().toISOString(),sig:JSON.stringify(ds)};save();toast('✅ Semaine envoyée à l’administrateur');render()}
+catch(e){btn.disabled=false;btn.textContent=old;toast('❌ Envoi impossible : vérifie ta connexion et réessaie',1)}}
+function weekCard(r,w){var d=pd(w.week);return'<div class="wcard"><div class="mu"><b>Semaine du '+d.getDate()+'/'+(d.getMonth()+1)+'</b> · '+fh(w.total_h||0)+' · envoyée le '+fdt(w.sent_at)+(w.seen?'':' · <span style="color:#e5484d;font-weight:700">nouveau</span>')+'</div>'+(w.days||[]).map(function(x){return'<div class="mu" style="margin-top:4px">'+esc(dayLine(x))+'</div>'}).join('')+'<div style="display:flex;gap:8px;margin-top:10px"><button class="s" style="margin:0" data-copy="'+esc(w.id)+'">Copier</button>'+(w.seen?'':'<button style="margin:0" data-seen="'+esc(w.id)+'">Marquer comme vu</button>')+'</div></div>'}
+function weekText(r,w){var d=pd(w.week);return r.prenom+' '+r.nom+' — semaine du '+d.getDate()+'/'+(d.getMonth()+1)+' ('+fh(w.total_h||0)+')\n'+(w.days||[]).map(dayLine).join('\n')}
 async function adminLoad(){var box=document.getElementById('adm');if(!box)return;
-try{var rows=await sb('GET','/rest/v1/profiles?select=id,prenom,nom,ent,created_at&order=created_at.desc');
-box.innerHTML=rows.length?'<div class="mu" style="margin-bottom:6px">'+rows.length+' inscrit(s) dans ton groupe</div>'+rows.map(function(r){return'<div class="row"><span><b>'+esc(r.prenom)+' '+esc(r.nom)+'</b><div class="mu">'+esc(r.ent)+' · '+esc(String(r.created_at).slice(0,10))+'</div></span>'+(r.id===S.me.uid?'<span class="mu">toi</span>':'<span class="x" data-id="'+esc(r.id)+'" data-nm="'+esc(r.prenom+' '+r.nom)+'">Supprimer</span>')+'</div>'}).join(''):'<div class="mu">Aucun inscrit.</div>';
+try{var P=await sb('GET','/rest/v1/profiles?select=id,prenom,nom,ent,created_at&order=created_at.desc'),Wk=await sb('GET','/rest/v1/weeks?select=id,user_id,week,days,total_h,sent_at,seen&order=sent_at.desc'),by={};
+ADM.w={};Wk.forEach(function(w){(by[w.user_id]=by[w.user_id]||[]).push(w)});
+ADM.n=Wk.filter(function(w){return!w.seen&&w.user_id!==S.me.uid}).length;
+box.innerHTML=P.length?'<div class="mu" style="margin-bottom:6px">'+P.length+' inscrit(s) dans ton groupe</div>'+P.map(function(r){var ws=by[r.id]||[],nw=ws.filter(function(w){return!w.seen}).length,me=r.id===S.me.uid;ws.forEach(function(w){ADM.w[w.id]={r:r,w:w}});
+return'<div class="row" style="display:block"><div style="display:flex;justify-content:space-between;align-items:center;gap:10px"><span data-open="'+esc(r.id)+'" style="flex:1;cursor:pointer"><b>'+esc(r.prenom)+' '+esc(r.nom)+'</b>'+(nw&&!me?' <i class="pill">+'+nw+'</i>':'')+'<div class="mu">'+esc(r.ent)+' · '+ws.length+' semaine(s) reçue(s)</div></span>'+(me?'<span class="mu">toi</span>':'<span class="x" data-id="'+esc(r.id)+'" data-nm="'+esc(r.prenom+' '+r.nom)+'">Supprimer</span>')+'</div><div id="w'+esc(r.id)+'" style="display:'+(ADM.open[r.id]?'block':'none')+'">'+ws.map(function(w){return weekCard(r,w)}).join('')+'</div></div>'}).join(''):'<div class="mu">Aucun inscrit.</div>';
+refreshNav();
+[].forEach.call(box.querySelectorAll('[data-open]'),function(b){b.onclick=function(){var d=document.getElementById('w'+b.dataset.open);var o=d.style.display==='none';d.style.display=o?'block':'none';ADM.open[b.dataset.open]=o}});
+[].forEach.call(box.querySelectorAll('[data-copy]'),function(b){b.onclick=function(){var x=ADM.w[b.dataset.copy],t=weekText(x.r,x.w);if(navigator.clipboard&&navigator.clipboard.writeText)navigator.clipboard.writeText(t).then(function(){toast('✅ Copié')},function(){prompt('Copie ce texte :',t)});else prompt('Copie ce texte :',t)}});
+[].forEach.call(box.querySelectorAll('[data-seen]'),function(b){b.onclick=function(){sb('POST','/rest/v1/rpc/mark_week_seen',{p_id:b.dataset.seen}).then(adminLoad).catch(function(){toast('❌ Action impossible',1)})}});
 [].forEach.call(box.querySelectorAll('[data-id]'),function(b){b.onclick=function(){if(confirm('Supprimer le compte de '+b.dataset.nm+' ?'))sb('DELETE','/rest/v1/profiles?id=eq.'+b.dataset.id).then(adminLoad).catch(function(){alert('Suppression impossible.')})}})}
 catch(e){box.innerHTML='<div class="mu">Liste indisponible (vérifie ta connexion).</div>'}}
 if(SB)setTimeout(syncMe,400);
+if(SB){setInterval(function(){if(!document.hidden)adminBadge()},60000);document.addEventListener('visibilitychange',function(){if(!document.hidden)adminBadge()})}
 function legalHTML(){return'<div class="mu" style="line-height:1.6">'+(SB?'Pour créer ton compte, ton <b>prénom, ton nom et ton entreprise</b> sont enregistrés en ligne et visibles par l’administrateur de ton entreprise, qui peut supprimer ton compte. Tes heures, tarifs et frais restent <b>sur ton téléphone</b>. Tu peux supprimer ton compte à tout moment dans Réglages. Pour créer un compte, tu dois accepter.':'Pour fonctionner, l’appli enregistre ton prénom, ton nom, ton entreprise, tes heures, tes tarifs et tes frais. Ces données restent <b>sur ton téléphone</b> : elles ne sont envoyées à aucun serveur aujourd’hui. Tu peux les modifier dans Réglages et les effacer à tout moment en supprimant les données du site dans ton navigateur. Pour créer un compte, tu dois accepter.')+'</div>'+
 '<details><summary>Mentions légales</summary><div class="mu" style="line-height:1.6;margin-top:8px"><b>Éditeur</b> : application gratuite et non commerciale, créée par Vincenzo De Pasquale.<br><b>Hébergement</b> : GitHub Pages (GitHub, Inc.)'+(SB?' ; base de données : Supabase, serveurs en Europe':'')+'.<br><b>Données traitées</b> : prénom, nom, entreprise, heures, tarifs et frais saisis. <b>Base légale</b> : ton consentement. <b>Durée</b> : '+(SB?'jusqu’à la suppression de ton compte, par toi ou par l’administrateur de ton entreprise.':'jusqu’à ce que tu effaces les données du site dans ton navigateur.')+'<br><b>Tes droits</b> (RGPD) : accès, rectification, effacement et retrait du consentement, que tu exerces directement dans l’appli (Réglages) ou en effaçant les données du site. '+(SB?'':'Si une fonction en ligne est ajoutée plus tard, tu en seras informé et ton accord sera demandé de nouveau.')+'<br><b>Estimations</b> : les montants affichés sont indicatifs, sans valeur contractuelle ; seule ta fiche de paie fait foi.</div></details>'}
 function pn(x){return parseFloat(String(x).replace(',','.'))}
@@ -163,7 +190,7 @@ h+='<div class="card hero2"><div class="lab">Semaine du '+ws.getDate()+'/'+(ws.g
 if(tab==='semaine'){
 var W={};for(var k in S.days){var m=iso(monday(pd(k)));W[m]=W[m]||{h:0,a:0,p:0};W[m].h+=S.days[k].h;W[m].a+=allow(S.days[k]);W[m].p+=dayPay(k)}
 var ks=Object.keys(W).sort(),cu={},cm={};ks.forEach(function(k){var mk=k.slice(0,7);cm[mk]=(cm[mk]||0)+W[k].p+W[k].a;cu[k]=cm[mk]});ks.reverse();
-h+='<h1>Semaines</h1><div class="card">'+(ks.length?ks.map(function(k){var x=pd(k);return'<div class="row" style="display:block"><div style="display:flex;justify-content:space-between"><span>Sem. du '+x.getDate()+'/'+(x.getMonth()+1)+'<div class="mu">'+fh(W[k].h)+' effectuées</div></span><b>'+eur(W[k].p+W[k].a)+'</b></div><details><summary style="margin-top:8px">Détails</summary><div class="mu" style="margin-top:6px">'+eur(W[k].p)+' heures + '+eur(W[k].a)+' frais</div><div class="mu">Cumul du mois : '+eur(cu[k])+'</div></details></div>'}).join(''):'<div class="mu">Aucune journée enregistrée.</div>')+'</div>';
+h+='<h1>Semaines</h1><div class="card">'+(ks.length?ks.map(function(k){var x=pd(k);return'<div class="row" style="display:block"><div style="display:flex;justify-content:space-between"><span>Sem. du '+x.getDate()+'/'+(x.getMonth()+1)+'<div class="mu">'+fh(W[k].h)+' effectuées</div></span><b>'+eur(W[k].p+W[k].a)+'</b></div><details><summary style="margin-top:8px">Détails</summary><div class="mu" style="margin-top:6px">'+eur(W[k].p)+' heures + '+eur(W[k].a)+' frais</div><div class="mu">Cumul du mois : '+eur(cu[k])+'</div></details>'+sendBlock(k)+'</div>'}).join(''):'<div class="mu">Aucune journée enregistrée.</div>')+'</div>';
 }
 if(tab==='mois'){
 var now=new Date(),key=iso(now).slice(0,7),M=month(key),H=M.h,T=tiers(H),c=S.set;
@@ -189,6 +216,7 @@ Object.keys(S.hist).sort().reverse().map(function(k){var x=S.hist[k];return'<div
 }
 el.innerHTML=h;
 if(tab==='admin'&&S.me.admin)adminLoad();
+if(tab==='semaine')[].forEach.call(el.querySelectorAll('[data-send]'),function(b){b.onclick=function(){sendWeek(b.dataset.send,b)}});
 if(tab==='jour'){document.getElementById('mm').value=d.m||'0';document.getElementById('m2').value=d.m2||'0';document.getElementById('nn').value=d.n||'0';
 document.getElementById('dt').onchange=function(){sel=this.value||sel;render()};
 document.getElementById('sv').onclick=function(){S.days[sel]={h:parseH(document.getElementById('hh').value),m:document.getElementById('mm').value,m2:document.getElementById('m2').value,n:document.getElementById('nn').value,p:document.getElementById('pp').checked};save();render()};
@@ -200,7 +228,7 @@ document.getElementById('ah').onclick=function(){var m=document.getElementById('
 [].forEach.call(el.querySelectorAll('[data-dh]'),function(b){b.onclick=function(){delete S.hist[b.dataset.dh];save();render()}})}
 var T2=[['jour','<span class="ic">📅</span>Jour'],['semaine','<span class="ic">🗓️</span>Semaines'],['mois','<span class="ic">💶</span>Mois'],['reglages','<span class="ic">⚙️</span>Réglages']];
 if(S.me.admin)T2.push(['admin','<span class="ic">🔑</span>Admin']);
-document.getElementById('nav').innerHTML=T2.map(function(t){return'<a href="#" data-t="'+t[0]+'" class="'+(tab===t[0]?'on':'')+'">'+t[1]+'</a>'}).join('');
+document.getElementById('nav').innerHTML=T2.map(function(t){return'<a href="#" data-t="'+t[0]+'" class="'+(tab===t[0]?'on':'')+'">'+t[1]+(t[0]==='admin'&&ADM.n?'<i class="bd">'+ADM.n+'</i>':'')+'</a>'}).join('');
 [].forEach.call(document.querySelectorAll('nav a'),function(a){a.onclick=function(e){e.preventDefault();tab=a.dataset.t;render()}});
 }
 render();
