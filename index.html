@@ -53,6 +53,7 @@ nav a.on{color:var(--ac);font-weight:700;background:var(--bg)}
 .mo>summary{font-size:15px;margin-top:12px}details.wk{margin:4px 0 0 10px}.wk>summary{color:var(--tx);font-weight:500;margin-top:8px}.mo>summary,.wk>summary{display:flex;align-items:center;gap:8px}.sv{margin-left:auto;font-weight:500;color:var(--tx);font-size:14px;text-align:right}.wkrow{display:flex;justify-content:space-between;padding:10px 0 4px 10px;font-size:15px}.no{opacity:.45}.tb{width:100%;border-collapse:collapse;font-size:13px}.tb th,.tb td{padding:7px 4px;border-bottom:1px solid var(--bd);text-align:left}.tb th{color:var(--mu);font-weight:600}.tt td{font-weight:700;border-bottom:0}
 .ov{position:fixed;inset:0;background:rgba(0,0,0,.45);display:flex;align-items:center;justify-content:center;z-index:20;padding:24px}.pb{background:var(--card);border-radius:24px;padding:26px 22px;max-width:340px;width:100%;text-align:center;box-shadow:0 20px 60px rgba(0,0,0,.35)}.pb h3{font-size:19px;margin:0 0 8px}.pb button{margin-top:12px}
 .okc{color:#1f9d55;font-weight:700}
+.fw{position:relative}.fw input{padding-right:52px}.fw .eu{position:absolute;right:16px;top:50%;transform:translateY(-50%);color:var(--mu);font-size:14px;pointer-events:none}
 .dots{display:flex;gap:8px;justify-content:center;margin:0 0 18px}.dots i{width:28px;height:6px;border-radius:3px;background:var(--bd)}.dots i.on{background:var(--ac)}
 </style>
 <script>
@@ -64,11 +65,11 @@ setTimeout(function(){var a=document.getElementById("app");if(a&&!a.innerHTML.tr
 <main id="app"></main>
 <nav id="nav"></nav>
 <script>
-var D={r1:0,r2:0,r3:0,t1:152,t2:185,mf:16.36,me:19.3,pd:8.87,nf:35.95,ne:42.42};
+var D={r1:0,r2:0,r3:0,n1:9.92,n2:12.4,n3:16.54,t1:152,t2:185,mf:16.36,me:19.3,pd:8.87,nf:35.95,ne:42.42};
 var S={days:{},set:Object.assign({},D),hist:{}};
 try{var s=JSON.parse(localStorage.getItem('vh')||'null');if(s){S.days=s.days||{};S.set=Object.assign({},D,s.set||{});S.hist=s.hist||{}}}catch(e){}
 for(var h0 in S.hist){if(typeof S.hist[h0]==='number')S.hist[h0]={p:S.hist[h0],e:0}}
-S.me=(s&&s.me)||null;S.ob=(s&&s.ob)||0;S.auth=(s&&s.auth)||null;S.sent=(s&&s.sent)||{};S.sentD=(s&&s.sentD)||{};Object.keys(S.sent).forEach(function(k){if(S.sent[k]&&S.sent[k].sig)try{JSON.parse(S.sent[k].sig).forEach(function(x){S.sentD[x.d]=JSON.stringify(x)})}catch(e){}});
+S.me=(s&&s.me)||null;S.ob=(s&&s.ob)||0;S.auth=(s&&s.auth)||null;S.net=!!(s&&s.net);S.sent=(s&&s.sent)||{};S.sentD=(s&&s.sentD)||{};Object.keys(S.sent).forEach(function(k){if(S.sent[k]&&S.sent[k].sig)try{JSON.parse(S.sent[k].sig).forEach(function(x){S.sentD[x.d]=JSON.stringify(x)})}catch(e){}});
 function save(){try{localStorage.setItem('vh',JSON.stringify(S))}catch(e){}}
 var tab='jour',sel=iso(new Date());
 function iso(d){var m=d.getMonth()+1,j=d.getDate();return d.getFullYear()+'-'+(m<10?'0':'')+m+'-'+(j<10?'0':'')+j}
@@ -78,7 +79,7 @@ function fh(h){var t=Math.round(h*60),m=t%60;return Math.floor(t/60)+'h'+(m<10?'
 function eur(x){return x.toFixed(2).replace('.',',')+' €'}
 function allow(d){var c=S.set,t=0;if(d.m==='fr')t+=c.mf;if(d.m==='et')t+=c.me;if(d.m2==='fr')t+=c.mf;if(d.m2==='et')t+=c.me;if(d.p)t+=c.pd;if(d.n==='fr')t+=c.nf;if(d.n==='et')t+=c.ne;return t}
 function monday(d){var x=new Date(d);var w=(x.getDay()+6)%7;x.setDate(x.getDate()-w);return x}
-function tiers(H){var c=S.set,a=Math.min(H,c.t1),b=Math.max(0,Math.min(H,c.t2)-c.t1),e=Math.max(0,H-c.t2);return{a:a,b:b,e:e,pay:a*c.r1+b*c.r2+e*c.r3}}
+function tiers(H,nt){var c=S.set,a=Math.min(H,c.t1),b=Math.max(0,Math.min(H,c.t2)-c.t1),e=Math.max(0,H-c.t2);return{a:a,b:b,e:e,pay:nt?a*c.n1+b*c.n2+e*c.n3:a*c.r1+b*c.r2+e*c.r3}}
 function month(key){var h=0,al=0,n=0;for(var k in S.days){if(k.slice(0,7)===key){h+=S.days[k].h||0;al+=allow(S.days[k]);n++}}return{h:h,al:al,n:n}}
 function histSummary(){var ks=Object.keys(S.hist).filter(function(k){return S.hist[k].p&&S.hist[k].e}),rp=0,re=0;ks.forEach(function(k){rp+=S.hist[k].p;re+=S.hist[k].e});var o='';if(rp)o+='<div class="mu" style="margin-top:8px">Montant moyen reçu par heure payée : <b>'+eur(re/rp)+'</b></div>';return o}
 function rw(l,v){return'<div class="row"><span>'+l+'</span><b>'+eur(v)+'</b></div>'}
@@ -260,7 +261,7 @@ if(tab==='mois'){
 var now=new Date(),key=iso(now).slice(0,7),M=month(key),H=M.h,T=tiers(H),c=S.set;
 var el2=weekdays(now.getFullYear(),now.getMonth(),now.getDate()),tt=weekdays(now.getFullYear(),now.getMonth()),pr=el2?M.h/el2*tt:0,Hp=pr,Tp=tiers(Hp),fp=el2?M.al/el2*tt:0;
 var hk=Object.keys(S.hist),av=hk.length?hk.reduce(function(s,k){return s+S.hist[k].p},0)/hk.length:0;
-var w=tt?Math.min(1,el2/tt):1,Hb=av?w*Hp+(1-w)*av:Hp,fb=avgF()?w*fp+(1-w)*avgF():fp,Tb=tiers(Hb),rt=ratio();
+var w=tt?Math.min(1,el2/tt):1,Hb=av?w*Hp+(1-w)*av:Hp,fb=avgF()?w*fp+(1-w)*avgF():fp,nt=!!S.net,Tb=tiers(Hb,nt),rt=ratio();
 h+=hello()+(c.r1?'':'<div class="card"><div class="mu">Renseigne tes taux et indemnités dans Réglages pour voir tes montants.</div></div>')+
 '<div class="card hero2"><div class="lab">À ce jour</div><div class="big">'+eur(T.pay+M.al)+'</div><div class="sub">'+fh(H)+' payées · frais compris</div><details><summary>Détails</summary>'+
 '<div class="row"><span>Base · jusqu’à '+c.t1+'h</span><span>'+fh(T.a)+' · '+eur(T.a*c.r1)+'</span></div>'+
@@ -268,18 +269,20 @@ h+=hello()+(c.r1?'':'<div class="card"><div class="mu">Renseigne tes taux et ind
 '<div class="row"><span>150 % · à partir de '+c.t2+'h</span><span>'+fh(T.e)+' · '+eur(T.e*c.r3)+'</span></div>'+
 '<div class="row"><span>Frais</span><span>'+eur(M.al)+'</span></div>'+
 '<div class="mu" style="margin-top:8px">Saisi : '+fh(M.h)+' sur '+M.n+' jours</div></details></div>'+
-'<div class="card"><div class="lab">Estimation fin de mois</div><div class="big">'+eur(Tb.pay+fb)+'</div><div class="sub">≈ '+fh(Hb)+' payées · frais compris</div><div class="mu" style="margin-top:8px">Plus tu renseignes d’informations (heures, frais, mois précédents), plus l’estimation sera proche du réel.</div><details><summary>Détails</summary>'+rw('Heures',Tb.pay)+rw('Frais',fb)+(rt?rw('Net potentiel',rt*Tb.pay+fb):'<div class="mu" style="margin-top:8px">Ajoute tes mois précédents dans Réglages pour estimer ton net.</div>')+'</details></div>';
+'<div class="card"><div class="lab">Estimation fin de mois</div><div class="big">'+eur(Tb.pay+fb)+'</div><div class="sub">≈ '+fh(Hb)+' payées · '+(nt?'net · ':'')+'frais compris</div><label style="display:flex;align-items:center;gap:10px;margin:12px 0 0;color:var(--tx);font-size:15px"><input type="checkbox" id="netc" style="width:22px;height:22px;margin:0;padding:0"'+(nt?' checked':'')+'> Net</label><div class="mu" style="margin-top:8px">Plus tu renseignes d’informations (heures, frais, mois précédents), plus l’estimation sera proche du réel.</div><details><summary>Détails</summary>'+rw(nt?'Heures (net)':'Heures',Tb.pay)+rw('Frais',fb)+(nt?'':rt?rw('Net potentiel',rt*Tb.pay+fb):'<div class="mu" style="margin-top:8px">Ajoute tes mois précédents dans Réglages pour estimer ton net.</div>')+'</details></div>';
 }
 if(tab==='admin'&&S.me.admin){h+='<h1>Administration</h1><div class="card" id="adm"><div class="mu">Chargement…</div></div>'}
 if(tab==='reglages'){
-var c=S.set,f=function(k,l){return'<label>'+l+'</label><input data-s="'+k+'" inputmode="decimal" value="'+c[k]+'">'};
-h+='<h1>Réglages</h1><div class="card"><h2>Mon profil</h2>'+pf('prenom','Prénom',S.me.sync)+pf('nom','Nom',S.me.sync)+pf('ent','Entreprise',S.me.sync)+(S.me.admin?'<div class="mu" style="margin-top:12px">🔑 Mode administrateur activé</div>':'')+'<details><summary>Mentions légales et données</summary><div style="margin-top:8px">'+legalHTML()+'</div></details>'+(S.me.sync?'<button class="s" id="delme" style="color:#e5484d">Supprimer mon compte</button>':'')+'</div><div class="card"><h2>Taux horaires</h2><div class="g2">'+f('r1','Tarif de base €/h')+f('r2','Tarif 125 % €/h')+f('r3','Tarif 150 % €/h')+f('t1','125 % à partir de (h)')+f('t2','150 % à partir de (h)')+'</div></div>'+
-'<div class="card"><h2>Indemnités (€)</h2><div class="g2">'+f('mf','Repas France')+f('me','Repas étranger')+f('pd','Casse-croûte')+f('nf','Nuit France')+f('ne','Nuit étranger')+'</div></div>'+
+var c=S.set,f=function(k,l,u){return'<label>'+l+'</label><div class="fw"><input data-s="'+k+'" inputmode="decimal" value="'+c[k]+'">'+(u?'<span class="eu">'+u+'</span>':'')+'</div>'};
+h+='<h1>Réglages</h1><div class="card"><h2>Mon profil</h2>'+pf('prenom','Prénom',S.me.sync)+pf('nom','Nom',S.me.sync)+pf('ent','Entreprise',S.me.sync)+(S.me.admin?'<div class="mu" style="margin-top:12px">🔑 Mode administrateur activé</div>':'')+'<details><summary>Mentions légales et données</summary><div style="margin-top:8px">'+legalHTML()+'</div></details>'+(S.me.sync?'<button class="s" id="delme" style="color:#e5484d">Supprimer mon compte</button>':'')+'</div><div class="card"><h2>Taux horaires</h2><div class="g2">'+f('r1','Tarif de base','€/h')+f('r2','Tarif 125 %','€/h')+f('r3','Tarif 150 %','€/h')+f('t1','125 % à partir de','h')+f('t2','150 % à partir de','h')+'</div></div>'+
+'<div class="card"><h2>Taux nets</h2><div class="g2">'+f('n1','Net · base','€/h')+f('n2','Net · 125 %','€/h')+f('n3','Net · 150 %','€/h')+'</div><div class="mu" style="margin-top:10px">Ces taux servent quand tu coches « Net » dans l’onglet Mois.</div></div>'+
+'<div class="card"><h2>Indemnités (€)</h2><div class="g2">'+f('mf','Repas France','€')+f('me','Repas étranger','€')+f('pd','Casse-croûte','€')+f('nf','Nuit France','€')+f('ne','Nuit étranger','€')+'</div></div>'+
 '<div class="card"><h2>Mois précédents (fiches de paie)</h2><label>Mois</label><input type="month" id="hm"><label>Heures payées (ex. 165h30)</label><input id="hv" placeholder="0h00"><label>Montant total reçu (€, frais compris)</label><input id="he" inputmode="decimal" placeholder="0,00"><label>Dont frais / indemnités (€)</label><input id="hf" inputmode="decimal" placeholder="0,00"><button class="s" id="ah">Ajouter ce mois</button><div style="margin-top:8px">'+
 Object.keys(S.hist).sort().reverse().map(function(k){var x=S.hist[k];return'<div class="row"><span>'+k+'</span><span style="text-align:right"><b>'+eur(x.e)+'</b><div class="mu">'+fh(x.p)+' payées <span class="x" data-dh="'+k+'">✕</span></div></span></div>'}).join('')+histSummary()+'</div></div>';
 }
 el.innerHTML=h;
 if(tab==='admin'&&S.me.admin)adminLoad();
+if(tab==='mois'){var nc=document.getElementById('netc');if(nc)nc.onchange=function(){S.net=this.checked;save();render()}}
 if(tab==='semaine'){[].forEach.call(el.querySelectorAll('[data-send]'),function(b){b.onclick=function(){sendWeek(b.dataset.send,b)}});}
 if(tab==='jour'){document.getElementById('mm').value=d.m||'0';document.getElementById('m2').value=d.m2||'0';document.getElementById('nn').value=d.n||'0';
 document.getElementById('dt').onchange=function(){sel=this.value||sel;render()};
