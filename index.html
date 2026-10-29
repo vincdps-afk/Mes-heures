@@ -54,7 +54,7 @@ nav a.on{color:var(--ac);font-weight:700;background:var(--bg)}
 .ov{position:fixed;inset:0;background:rgba(0,0,0,.45);display:flex;align-items:center;justify-content:center;z-index:20;padding:24px}.pb{background:var(--card);border-radius:24px;padding:26px 22px;max-width:340px;width:100%;text-align:center;box-shadow:0 20px 60px rgba(0,0,0,.35)}.pb h3{font-size:19px;margin:0 0 8px}.pb button{margin-top:12px}
 .okc{color:#1f9d55;font-weight:700}
 .fw{position:relative}.fw input{padding-right:52px}.fw .eu{position:absolute;right:16px;top:50%;transform:translateY(-50%);color:var(--mu);font-size:14px;pointer-events:none}
-.tp{display:flex;gap:10px;margin-top:12px}.tpl{display:flex;align-items:center;justify-content:center;gap:8px;margin:0;padding:11px 8px;border:1px solid var(--bd);border-radius:14px;color:var(--tx);font-size:15px;flex:1}.tpl input{width:20px;height:20px;margin:0;padding:0}
+.tp{display:flex;gap:6px;margin:4px 0 8px}.tpl{display:flex;align-items:center;gap:6px;margin:0;padding:4px 10px;border:1px solid var(--bd);border-radius:12px;color:var(--tx);font-size:13px;flex:none}.tpl input{width:15px;height:15px;margin:0;padding:0}
 .dots{display:flex;gap:8px;justify-content:center;margin:0 0 18px}.dots i{width:28px;height:6px;border-radius:3px;background:var(--bd)}.dots i.on{background:var(--ac)}
 </style>
 <script>
@@ -178,7 +178,7 @@ document.getElementById('back').onclick=function(){ADM.view=null;adminRender()};
 document.getElementById('yp').onclick=function(){ADM.year--;adminRender()};document.getElementById('yn').onclick=function(){ADM.year++;adminRender()}}
 else{ADM.view=null;
 box.innerHTML='<button class="s" id="recapb" style="margin:0 0 12px">📋 Récapitulatif du mois</button>'+(ADM.P.length?ADM.P.map(function(r){var me=r.id===S.me.uid,nw=(by[r.id]||[]).filter(function(w){return!w.seen}).length;
-return'<div class="row" style="align-items:center"><span data-open="'+esc(r.id)+'" style="flex:1;cursor:pointer;font-weight:600">'+esc(r.prenom)+' '+esc(r.nom)+(r.up_to_date===true&&!me?' <span class="okc" style="font-size:13px">✓ à jour</span>':'')+(nw&&!me?' <i class="pill">+'+nw+'</i>':'')+'</span>'+(me?'':'<span class="x" data-id="'+esc(r.id)+'" data-nm="'+esc(r.prenom+' '+r.nom)+'" style="font-size:22px;padding:0 6px">✕</span>')+'</div>'}).join(''):'<div class="mu">Aucun inscrit.</div>');
+return'<div class="row" style="align-items:center"><span data-open="'+esc(r.id)+'" style="flex:1;cursor:pointer;font-weight:600">'+esc(r.prenom)+' '+esc(r.nom)+(r.up_to_date===true?' <span class="okc" style="font-size:13px">✓ à jour</span>':'')+(nw&&!me?' <i class="pill">+'+nw+'</i>':'')+'</span>'+(me?'':'<span class="x" data-id="'+esc(r.id)+'" data-nm="'+esc(r.prenom+' '+r.nom)+'" style="font-size:22px;padding:0 6px">✕</span>')+'</div>'}).join(''):'<div class="mu">Aucun inscrit.</div>');
 document.getElementById('recapb').onclick=function(){var mx='';ADM.Wk.forEach(function(w){(w.days||[]).forEach(function(x){if(String(x.d)>mx)mx=String(x.d)})});if(mx){ADM.rY=+mx.slice(0,4);ADM.rM=+mx.slice(5,7)-1}ADM.view='recap';adminRender()};
 [].forEach.call(box.querySelectorAll('[data-open]'),function(b){b.onclick=function(){ADM.view=b.dataset.open;adminRender()}});
 [].forEach.call(box.querySelectorAll('[data-id]'),function(b){b.onclick=function(){ask('Supprimer ce compte ?',esc(b.dataset.nm),'Supprimer',function(){sb('DELETE','/rest/v1/profiles?id=eq.'+b.dataset.id).then(adminLoad).catch(function(){toast('❌ Suppression impossible',1)})})}})}
@@ -313,8 +313,9 @@ if(!S.me||S.ob||(SB&&S.me.sync&&S.me.hp===false)){onboard(el);return}
 if(tab==='jour'){
 var d=S.days[sel]||{h:0,m:'0',p:false,n:'0'};
 h+=hello()+'<div class="card"><label>Date</label><input type="date" id="dt" value="'+sel+'">'+
-'<label>Heures travaillées (ex. 9h30, 9:30 ou 9.5)</label><input id="hh" inputmode="text" value="'+(d.h?fh(d.h):'')+'" placeholder="0h00">'+
+'<label>Heures travaillées (ex. 9h30, 9:30 ou 9.5)</label>'+
 '<div class="tp"><label class="tpl"><input type="checkbox" class="tpi" data-ty="cp"'+(d.t==='cp'?' checked':'')+'> CP</label><label class="tpl"><input type="checkbox" class="tpi" data-ty="rc"'+(d.t==='rc'?' checked':'')+'> RC</label><label class="tpl"><input type="checkbox" class="tpi" data-ty="ferie"'+(d.t==='ferie'?' checked':'')+'> Férié</label></div>'+
+'<input id="hh" inputmode="text" value="'+(d.h?fh(d.h):'')+'" placeholder="0h00">'+
 '<div class="g2"><div><label>Repas midi</label><select id="mm"><option value="0">Aucun</option><option value="fr">France</option><option value="et">Étranger</option></select></div><div><label>Repas soir</label><select id="m2"><option value="0">Aucun</option><option value="fr">France</option><option value="et">Étranger</option></select></div></div><div class="g2">'+
 '<div><label>Nuit</label><select id="nn"><option value="0">Aucune</option><option value="fr">France</option><option value="et">Étranger</option></select></div></div>'+
 '<label><input type="checkbox" id="pp" style="width:auto;margin-right:8px"'+(d.p?' checked':'')+'>Casse-croûte</label>'+
@@ -355,7 +356,7 @@ if(tab==='mois'){var nc=document.getElementById('netc');if(nc)nc.onchange=functi
 if(tab==='semaine'){[].forEach.call(el.querySelectorAll('[data-send]'),function(b){b.onclick=function(){sendWeek(b.dataset.send,b)}});}
 if(tab==='jour'){document.getElementById('mm').value=d.m||'0';document.getElementById('m2').value=d.m2||'0';document.getElementById('nn').value=d.n||'0';
 document.getElementById('dt').onchange=function(){sel=this.value||sel;render()};
-var tp=function(ch){[].forEach.call(el.querySelectorAll('.tpi'),function(c){if(c!==ch)c.checked=false});var on=el.querySelector('.tpi:checked'),hh=document.getElementById('hh');['mm','m2','nn','pp'].forEach(function(i){var e=document.getElementById(i);e.disabled=!!on;if(on){if(i==='pp')e.checked=false;else e.value='0'}});hh.readOnly=!!on;if(on)hh.value='8h00'};
+var tp=function(ch){[].forEach.call(el.querySelectorAll('.tpi'),function(c){if(c!==ch)c.checked=false});var on=el.querySelector('.tpi:checked'),hh=document.getElementById('hh');['mm','m2','nn','pp'].forEach(function(i){var e=document.getElementById(i);e.disabled=!!on;if(on){if(i==='pp')e.checked=false;else e.value='0'}});hh.readOnly=!!on;hh.value=on?'8h00':''};
 [].forEach.call(el.querySelectorAll('.tpi'),function(c){c.onchange=function(){tp(c)}});var ot=el.querySelector('.tpi:checked');if(ot)tp(ot);
 document.getElementById('sv').onclick=function(){var on=el.querySelector('.tpi:checked');S.days[sel]=on?{h:8,m:'0',m2:'0',n:'0',p:false,t:on.dataset.ty}:{h:parseH(document.getElementById('hh').value),m:document.getElementById('mm').value,m2:document.getElementById('m2').value,n:document.getElementById('nn').value,p:document.getElementById('pp').checked};save();render();afterSave(sel);reportStatus()};
 [].forEach.call(el.querySelectorAll('[data-del]'),function(b){b.onclick=function(){delDay(b.dataset.del)}})}
