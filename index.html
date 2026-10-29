@@ -79,15 +79,15 @@ function fh(h){var t=Math.round(h*60),m=t%60;return Math.floor(t/60)+'h'+(m<10?'
 function eur(x){return x.toFixed(2).replace('.',',')+' €'}
 function allow(d){var c=S.set,t=0;if(d.m==='fr')t+=c.mf;if(d.m==='et')t+=c.me;if(d.m2==='fr')t+=c.mf;if(d.m2==='et')t+=c.me;if(d.p)t+=c.pd;if(d.n==='fr')t+=c.nf;if(d.n==='et')t+=c.ne;return t}
 function monday(d){var x=new Date(d);var w=(x.getDay()+6)%7;x.setDate(x.getDate()-w);return x}
-function tiers(H,nt){var c=S.set,a=Math.min(H,c.t1),b=Math.max(0,Math.min(H,c.t2)-c.t1),e=Math.max(0,H-c.t2);return{a:a,b:b,e:e,pay:nt?a*c.n1+b*c.n2+e*c.n3:a*c.r1+b*c.r2+e*c.r3}}
+function tiers(H,nt){if(nt===undefined)nt=!!S.net;var c=S.set,a=Math.min(H,c.t1),b=Math.max(0,Math.min(H,c.t2)-c.t1),e=Math.max(0,H-c.t2);return{a:a,b:b,e:e,pay:nt?a*c.n1+b*c.n2+e*c.n3:a*c.r1+b*c.r2+e*c.r3}}
 function month(key){var h=0,al=0,n=0;for(var k in S.days){if(k.slice(0,7)===key){h+=S.days[k].h||0;al+=allow(S.days[k]);n++}}return{h:h,al:al,n:n}}
 function histSummary(){var ks=Object.keys(S.hist).filter(function(k){return S.hist[k].p&&S.hist[k].e}),rp=0,re=0;ks.forEach(function(k){rp+=S.hist[k].p;re+=S.hist[k].e});var o='';if(rp)o+='<div class="mu" style="margin-top:8px">Montant moyen reçu par heure payée : <b>'+eur(re/rp)+'</b></div>';return o}
 function rw(l,v){return'<div class="row"><span>'+l+'</span><b>'+eur(v)+'</b></div>'}
-function ratio(){var a=0,b=0;Object.keys(S.hist).forEach(function(k){var x=S.hist[k];if(x.p&&x.e){a+=x.e-(x.f||0);b+=tiers(x.p).pay}});return b?a/b:0}
+function ratio(){var a=0,b=0;Object.keys(S.hist).forEach(function(k){var x=S.hist[k];if(x.p&&x.e){a+=x.e-(x.f||0);b+=tiers(x.p,false).pay}});return b?a/b:0}
 function avgF(){var t=0,n=0;Object.keys(S.hist).forEach(function(k){if(S.hist[k].f){t+=S.hist[k].f;n++}});return n?t/n:0}
 function monthExtra(T,fp,av,w){
 var rt=ratio(),af=avgF(),h=T.pay,f=fp;
-if(av){h=w*T.pay+(1-w)*tiers(av).pay;if(af)f=w*fp+(1-w)*af}
+if(av){h=w*T.pay+(1-w)*tiers(av,false).pay;if(af)f=w*fp+(1-w)*af}
 return'<div class="sec"><h3>Net potentiel</h3>'+(rt?rw('Net estimé',rt*h+f)+'<div class="mu">D’après ton rythme du mois et tes mois précédents (net/brut : '+Math.round(rt*100)+' %)</div>':'<div class="mu">Ajoute tes mois précédents dans Réglages (heures payées, montant reçu, frais) pour estimer ton net.</div>')+'</div>'}
 function esc(x){return String(x==null?'':x).replace(/[&<>"]/g,function(c){return{'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]})}
 function hello(){return'<div class="hi"><div class="mu">'+esc(S.me.ent)+'</div><div class="hn">Bonjour '+esc(S.me.prenom)+' 👋</div></div>'}
@@ -262,7 +262,7 @@ h+=hello()+'<div class="card"><label>Date</label><input type="date" id="dt" valu
 var ws=monday(pd(sel)),tot=0,al=0,wp=0,rows='';
 for(var i=0;i<7;i++){var x=new Date(ws);x.setDate(x.getDate()+i);var k=iso(x),dd=S.days[k];if(dd){tot+=dd.h;al+=allow(dd);wp+=dayPay(k)}
 rows+='<div class="row"><span>'+['Lun','Mar','Mer','Jeu','Ven','Sam','Dim'][i]+' '+x.getDate()+'</span><span>'+(dd?fh(dd.h)+' · '+eur(dayPay(k))+' · '+eur(allow(dd)):'—')+(dd?' <span class="x" data-del="'+k+'">✕</span>':'')+'</span></div>'}
-h+='<div class="card hero2"><div class="lab">Semaine du '+ws.getDate()+'/'+(ws.getMonth()+1)+'</div><div class="big">'+eur(wp+al)+'</div><div class="sub">'+fh(tot)+' · frais compris</div><div class="mu" style="margin-top:10px">'+eur(wp)+' d’heures + '+eur(al)+' de frais</div><div style="margin-top:6px">'+rows+'</div></div>';
+h+='<div class="card hero2"><div class="lab">Semaine du '+ws.getDate()+'/'+(ws.getMonth()+1)+(S.net?' · net':'')+'</div><div class="big">'+eur(wp+al)+'</div><div class="sub">'+fh(tot)+' · frais compris</div><div class="mu" style="margin-top:10px">'+eur(wp)+' d’heures + '+eur(al)+' de frais</div><div style="margin-top:6px">'+rows+'</div></div>';
 }
 if(tab==='semaine'){var cw=iso(monday(new Date())),wds=weekData(cw),wh=wds.reduce(function(t,d){return t+d.h},0),w0=pd(cw),w6=new Date(w0);w6.setDate(w0.getDate()+5);
 h+='<h1>Semaine en cours</h1><div class="card"><div class="lab">Du '+w0.getDate()+'/'+(w0.getMonth()+1)+' au '+w6.getDate()+'/'+(w6.getMonth()+1)+'</div>'+userWeekTable({k:cw,ds:wds,h:wh})+'</div>'
@@ -272,14 +272,14 @@ var now=new Date(),key=iso(now).slice(0,7),M=month(key),H=M.h,T=tiers(H),c=S.set
 var el2=weekdays(now.getFullYear(),now.getMonth(),now.getDate()),tt=weekdays(now.getFullYear(),now.getMonth()),pr=el2?M.h/el2*tt:0,Hp=pr,Tp=tiers(Hp),fp=el2?M.al/el2*tt:0;
 var hk=Object.keys(S.hist),av=hk.length?hk.reduce(function(s,k){return s+S.hist[k].p},0)/hk.length:0;
 var w=tt?Math.min(1,el2/tt):1,Hb=av?w*Hp+(1-w)*av:Hp,fb=avgF()?w*fp+(1-w)*avgF():fp,nt=!!S.net,Tb=tiers(Hb,nt),rt=ratio();
-h+=hello()+(c.r1?'':'<div class="card"><div class="mu">Renseigne tes taux et indemnités dans Réglages pour voir tes montants.</div></div>')+
-'<div class="card hero2"><div class="lab">À ce jour</div><div class="big">'+eur(T.pay+M.al)+'</div><div class="sub">'+fh(H)+' payées · frais compris</div><details><summary>Détails</summary>'+
-'<div class="row"><span>Base · jusqu’à '+c.t1+'h</span><span>'+fh(T.a)+' · '+eur(T.a*c.r1)+'</span></div>'+
-'<div class="row"><span>125 % · '+c.t1+'h–'+c.t2+'h</span><span>'+fh(T.b)+' · '+eur(T.b*c.r2)+'</span></div>'+
-'<div class="row"><span>150 % · à partir de '+c.t2+'h</span><span>'+fh(T.e)+' · '+eur(T.e*c.r3)+'</span></div>'+
+h+=hello()+'<div class="card" style="padding:14px 18px"><label style="display:flex;align-items:center;gap:12px;margin:0;color:var(--tx);font-size:16px"><input type="checkbox" id="netc" style="width:22px;height:22px;margin:0;padding:0"'+(nt?' checked':'')+'> Net <span class="mu">(tous les montants avec tes taux nets)</span></label></div>'+(c.r1?'':'<div class="card"><div class="mu">Renseigne tes taux et indemnités dans Réglages pour voir tes montants.</div></div>')+
+'<div class="card hero2"><div class="lab">À ce jour'+(nt?' · net':'')+'</div><div class="big">'+eur(T.pay+M.al)+'</div><div class="sub">'+fh(H)+' payées · '+(nt?'net · ':'')+'frais compris</div><details><summary>Détails</summary>'+
+'<div class="row"><span>Base · jusqu’à '+c.t1+'h</span><span>'+fh(T.a)+' · '+eur(T.a*(nt?c.n1:c.r1))+'</span></div>'+
+'<div class="row"><span>125 % · '+c.t1+'h–'+c.t2+'h</span><span>'+fh(T.b)+' · '+eur(T.b*(nt?c.n2:c.r2))+'</span></div>'+
+'<div class="row"><span>150 % · à partir de '+c.t2+'h</span><span>'+fh(T.e)+' · '+eur(T.e*(nt?c.n3:c.r3))+'</span></div>'+
 '<div class="row"><span>Frais</span><span>'+eur(M.al)+'</span></div>'+
 '<div class="mu" style="margin-top:8px">Saisi : '+fh(M.h)+' sur '+M.n+' jours</div></details></div>'+
-'<div class="card"><div class="lab">Estimation fin de mois</div><div class="big">'+eur(Tb.pay+fb)+'</div><div class="sub">≈ '+fh(Hb)+' payées · '+(nt?'net · ':'')+'frais compris</div><label style="display:flex;align-items:center;gap:10px;margin:12px 0 0;color:var(--tx);font-size:15px"><input type="checkbox" id="netc" style="width:22px;height:22px;margin:0;padding:0"'+(nt?' checked':'')+'> Net</label><div class="mu" style="margin-top:8px">Plus tu renseignes d’informations (heures, frais, mois précédents), plus l’estimation sera proche du réel.</div><details><summary>Détails</summary>'+rw(nt?'Heures (net)':'Heures',Tb.pay)+rw('Frais',fb)+(nt?'':rt?rw('Net potentiel',rt*Tb.pay+fb):'<div class="mu" style="margin-top:8px">Ajoute tes mois précédents dans Réglages pour estimer ton net.</div>')+'</details></div>';
+'<div class="card"><div class="lab">Estimation fin de mois</div><div class="big">'+eur(Tb.pay+fb)+'</div><div class="sub">≈ '+fh(Hb)+' payées · '+(nt?'net · ':'')+'frais compris</div><div class="mu" style="margin-top:8px">Plus tu renseignes d’informations (heures, frais, mois précédents), plus l’estimation sera proche du réel.</div><details><summary>Détails</summary>'+rw(nt?'Heures (net)':'Heures',Tb.pay)+rw('Frais',fb)+(nt?'':rt?rw('Net potentiel',rt*Tb.pay+fb):'<div class="mu" style="margin-top:8px">Ajoute tes mois précédents dans Réglages pour estimer ton net.</div>')+'</details></div>';
 }
 if(tab==='admin'&&S.me.admin){h+='<h1>Administration</h1><div class="card" id="adm"><div class="mu">Chargement…</div></div>'}
 if(tab==='reglages'){
