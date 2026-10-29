@@ -128,16 +128,16 @@ var LEG='rf = repas France · re = repas étranger · cc = casse-croûte · nf =
 function dayLine(x){var c=codeStr(codes(x));return['Dim','Lun','Mar','Mer','Jeu','Ven','Sam'][pd(x.d).getDay()]+' '+x.d.slice(8)+'/'+x.d.slice(5,7)+' · '+fh(x.h)+(c?' · '+c:'')}
 function pendingDays(k){return weekData(k).filter(function(x){return S.sentD[x.d]!==JSON.stringify(x)})}
 function sendBlock(k){if(!SB||!S.me.sync)return'';var n=pendingDays(k).length,st=S.sent[k];
-return'<div style="text-align:center;margin-top:16px">'+((S.delQ||[]).length?'<div class="mu" style="margin-bottom:8px">⏳ '+S.delQ.length+' suppression'+(S.delQ.length>1?'s':'')+' à transmettre aux bureaux</div>':'')+(n?'<div class="mu" style="margin-bottom:8px">'+n+' jour'+(n>1?'s':'')+' à envoyer</div>':(st?'<div class="ok" style="margin:0 0 8px">✅ Tout est transmis (le '+fdt(st.t)+')</div>':''))+'<button class="'+(n?'':'s')+'" data-send="'+k+'" style="width:auto;padding:14px 22px;margin:0 auto">Envoyer mes heures et frais aux bureaux</button></div>'}
+return'<div style="text-align:center;margin-top:16px">'+((S.delQ||[]).length?'<div class="mu" style="margin-bottom:8px">⏳ '+S.delQ.length+' suppression'+(S.delQ.length>1?'s':'')+' à transmettre aux bureaux</div>':'')+(n?'<div class="mu" style="margin-bottom:8px">'+n+' jour'+(n>1?'s':'')+' à envoyer</div>':(st&&!(S.delQ||[]).length&&weekData(k).length?'<div class="ok" style="margin:0 0 8px">✅ Tout est transmis (le '+fdt(st.t)+')</div>':''))+'<button class="'+(n?'':'s')+'" data-send="'+k+'" style="width:auto;padding:14px 22px;margin:0 auto">Envoyer mes heures et frais aux bureaux</button></div>'}
 function reconcileDel(){Object.keys(S.sentD).forEach(function(d){if(!S.days[d]){S.delQ=S.delQ||[];if(!S.delQ.some(function(q){return q.d===d}))S.delQ.push({w:iso(monday(pd(d))),d:d});delete S.sentD[d]}})}
 async function flushDel(loud){if(!SB||!S.me||!S.me.sync||FLUSHING)return;reconcileDel();if(!S.delQ||!S.delQ.length){save();return}FLUSHING=true;
-try{while(S.delQ.length){var x=S.delQ[0];await sb('POST','/rest/v1/rpc/delete_day',{p_week:x.w,p_day:x.d});S.delQ.shift();save()}toast('✅ Suppression transmise aux bureaux');render()}
+try{while(S.delQ.length){var x=S.delQ[0];await sb('POST','/rest/v1/rpc/delete_day',{p_week:x.w,p_day:x.d});S.delQ.shift();if(weekData(x.w).length)S.sent[x.w]={t:new Date().toISOString()};else delete S.sent[x.w];save()}toast('✅ Suppression transmise aux bureaux');render()}
 catch(e){save();if(loud)toast('⏳ Suppression en attente : elle sera transmise dès que la connexion revient',1)}
 FLUSHING=false}
 function ask(t,m,ok,fn){popup(t,m,[{t:ok,fn:fn},{t:'Annuler',s:1}])}
 function showText(t){popup('Copie ce texte','<textarea readonly style="width:100%;height:160px;margin-top:8px;font-size:13px" onclick="this.select()">'+esc(t)+'</textarea>',[{t:'Fermer',s:1}])}
 function delDay(k){var wk=iso(monday(pd(k))),was=S.sentD[k]!==undefined&&!!(SB&&S.me.sync);
-var go=function(){delete S.days[k];if(was){delete S.sentD[k];S.delQ=S.delQ||[];S.delQ.push({w:wk,d:k})}save();render();if(was)flushDel(true)};
+var go=function(){delete S.days[k];if(was){delete S.sentD[k];S.delQ=S.delQ||[];S.delQ.push({w:wk,d:k})}if(!weekData(wk).length)delete S.sent[wk];save();render();if(was)flushDel(true)};
 if(was)ask('Supprimer la journée ?','Cette journée a déjà été transmise aux bureaux. La supprimer aussi chez eux ?','Oui, supprimer',go);else go()}
 async function sendDays(k,ds,btn){btn=btn||{};if(!ds.length){toast('✅ Tout est déjà transmis aux bureaux');return}var old=btn.textContent;btn.disabled=true;btn.textContent='Transmission…';
 try{var tot=ds.reduce(function(s,d){return s+d.h},0),t=await sb('POST','/rest/v1/rpc/send_week',{p_week:k,p_days:ds,p_total:tot});
