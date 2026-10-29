@@ -57,7 +57,7 @@ nav a.on{color:var(--ac);font-weight:700;background:var(--bg)}
 .dots{display:flex;gap:8px;justify-content:center;margin:0 0 18px}.dots i{width:28px;height:6px;border-radius:3px;background:var(--bd)}.dots i.on{background:var(--ac)}
 </style>
 <script>
-setTimeout(function(){var a=document.getElementById("app");if(a&&!a.innerHTML.trim()){document.body.innerHTML='<div style="font:16px system-ui;padding:28px;text-align:center"><h2>Un problème est survenu</h2><p>L’appli n’a pas pu démarrer. Tes données ne sont pas effacées.</p><button id="fx" style="padding:14px 22px;font-size:16px;border:0;border-radius:14px;background:#2f6df6;color:#fff">Réparer et relancer</button><p><a href="#" id="fy" style="color:#e5484d;font-size:14px">Effacer mes données et recommencer</a></p></div>';var clean=function(){var p=[];if(navigator.serviceWorker)p.push(navigator.serviceWorker.getRegistrations().then(function(r){return Promise.all(r.map(function(x){return x.unregister()}))}));if(window.caches)p.push(caches.keys().then(function(k){return Promise.all(k.map(function(x){return caches.delete(x)}))}));return Promise.all(p)};document.getElementById("fx").onclick=function(){clean().then(function(){location.reload()})};document.getElementById("fy").onclick=function(e){e.preventDefault();if(confirm("Effacer toutes tes données sur cet appareil ?")){try{localStorage.clear()}catch(x){}clean().then(function(){location.reload()})}}}},2500);
+setTimeout(function(){var a=document.getElementById("app");if(a&&!a.innerHTML.trim()){document.body.innerHTML='<div style="font:16px system-ui;padding:28px;text-align:center"><h2>Un problème est survenu</h2><p>L’appli n’a pas pu démarrer. Tes données ne sont pas effacées.</p><button id="fx" style="padding:14px 22px;font-size:16px;border:0;border-radius:14px;background:#2f6df6;color:#fff">Réparer et relancer</button><p><a href="#" id="fy" style="color:#e5484d;font-size:14px">Effacer mes données et recommencer</a></p></div>';var clean=function(){var p=[];if(navigator.serviceWorker)p.push(navigator.serviceWorker.getRegistrations().then(function(r){return Promise.all(r.map(function(x){return x.unregister()}))}));if(window.caches)p.push(caches.keys().then(function(k){return Promise.all(k.map(function(x){return caches.delete(x)}))}));return Promise.all(p)};document.getElementById("fx").onclick=function(){clean().then(function(){location.reload()})};document.getElementById("fy").onclick=function(e){e.preventDefault();if(this.dataset.c!=="1"){this.dataset.c="1";this.textContent="Appuie encore pour tout effacer";return}{try{localStorage.clear()}catch(x){}clean().then(function(){location.reload()})}}}},2500);
 </script>
 <script src="config.js"></script>
 </head>
@@ -112,7 +112,7 @@ if(S.me.sync&&S.me.uid===uid){var mv=await sb('GET','/rest/v1/moved_ids?old_uid=
 if(S.me.sync){gone('Session expirée : reconnecte-toi avec ton code personnel.');return}
 gone('Mise à jour : crée ton compte (ou connecte-toi) pour continuer.');return}
 S.me.sync=true;S.me.uid=uid;S.me.hp=!!rows[0].has_pin;
-if(S.me.ac){var code=S.me.ac,ok=await sb('POST','/rest/v1/rpc/claim_admin',{code:code});delete S.me.ac;if(ok)rows=[{admin:true}];else alert('Code administrateur incorrect.')}
+if(S.me.ac){var code=S.me.ac,ok=await sb('POST','/rest/v1/rpc/claim_admin',{code:code});delete S.me.ac;if(ok)rows=[{admin:true}];else toast('Code administrateur incorrect.',1)}
 S.me.admin=!!rows[0].admin;save()}catch(e){}
 SYNCING=false;if(S.me&&!S.ob&&JSON.stringify([S.me,tab])!==before)render();if(S.me&&S.me.admin)adminBadge();flushDel()}
 var ADM={n:0,open:{},w:{},year:new Date().getFullYear()};
@@ -128,18 +128,22 @@ var LEG='rf = repas France · re = repas étranger · cc = casse-croûte · nf =
 function dayLine(x){var c=codeStr(codes(x));return['Dim','Lun','Mar','Mer','Jeu','Ven','Sam'][pd(x.d).getDay()]+' '+x.d.slice(8)+'/'+x.d.slice(5,7)+' · '+fh(x.h)+(c?' · '+c:'')}
 function pendingDays(k){return weekData(k).filter(function(x){return S.sentD[x.d]!==JSON.stringify(x)})}
 function sendBlock(k){if(!SB||!S.me.sync)return'';var n=pendingDays(k).length,st=S.sent[k];
-return'<div style="text-align:center;margin-top:16px">'+(n?'<div class="mu" style="margin-bottom:8px">'+n+' jour'+(n>1?'s':'')+' à envoyer</div>':(st?'<div class="ok" style="margin:0 0 8px">✅ Tout est transmis (le '+fdt(st.t)+')</div>':''))+'<button class="'+(n?'':'s')+'" data-send="'+k+'" style="width:auto;padding:14px 22px;margin:0 auto">Envoyer mes heures et frais aux bureaux</button></div>'}
-async function flushDel(){if(!SB||!S.me||!S.me.sync||!S.delQ||!S.delQ.length||FLUSHING)return;FLUSHING=true;var n=0;
-try{while(S.delQ.length){var x=S.delQ[0];await sb('POST','/rest/v1/rpc/delete_day',{p_week:x.w,p_day:x.d});S.delQ.shift();save();n++}toast('✅ Suppression transmise aux bureaux')}catch(e){}
+return'<div style="text-align:center;margin-top:16px">'+((S.delQ||[]).length?'<div class="mu" style="margin-bottom:8px">⏳ '+S.delQ.length+' suppression'+(S.delQ.length>1?'s':'')+' à transmettre aux bureaux</div>':'')+(n?'<div class="mu" style="margin-bottom:8px">'+n+' jour'+(n>1?'s':'')+' à envoyer</div>':(st?'<div class="ok" style="margin:0 0 8px">✅ Tout est transmis (le '+fdt(st.t)+')</div>':''))+'<button class="'+(n?'':'s')+'" data-send="'+k+'" style="width:auto;padding:14px 22px;margin:0 auto">Envoyer mes heures et frais aux bureaux</button></div>'}
+function reconcileDel(){Object.keys(S.sentD).forEach(function(d){if(!S.days[d]){S.delQ=S.delQ||[];if(!S.delQ.some(function(q){return q.d===d}))S.delQ.push({w:iso(monday(pd(d))),d:d});delete S.sentD[d]}})}
+async function flushDel(loud){if(!SB||!S.me||!S.me.sync||FLUSHING)return;reconcileDel();if(!S.delQ||!S.delQ.length){save();return}FLUSHING=true;
+try{while(S.delQ.length){var x=S.delQ[0];await sb('POST','/rest/v1/rpc/delete_day',{p_week:x.w,p_day:x.d});S.delQ.shift();save()}toast('✅ Suppression transmise aux bureaux');render()}
+catch(e){save();if(loud)toast('⏳ Suppression en attente : elle sera transmise dès que la connexion revient',1)}
 FLUSHING=false}
+function ask(t,m,ok,fn){popup(t,m,[{t:ok,fn:fn},{t:'Annuler',s:1}])}
+function showText(t){popup('Copie ce texte','<textarea readonly style="width:100%;height:160px;margin-top:8px;font-size:13px" onclick="this.select()">'+esc(t)+'</textarea>',[{t:'Fermer',s:1}])}
 function delDay(k){var wk=iso(monday(pd(k))),was=S.sentD[k]!==undefined&&!!(SB&&S.me.sync);
-if(was&&!confirm('Cette journée a déjà été transmise aux bureaux. La supprimer aussi chez eux ?'))return;
-delete S.days[k];if(was){delete S.sentD[k];S.delQ=S.delQ||[];S.delQ.push({w:wk,d:k})}save();render();if(was)flushDel()}
+var go=function(){delete S.days[k];if(was){delete S.sentD[k];S.delQ=S.delQ||[];S.delQ.push({w:wk,d:k})}save();render();if(was)flushDel(true)};
+if(was)ask('Supprimer la journée ?','Cette journée a déjà été transmise aux bureaux. La supprimer aussi chez eux ?','Oui, supprimer',go);else go()}
 async function sendDays(k,ds,btn){btn=btn||{};if(!ds.length){toast('✅ Tout est déjà transmis aux bureaux');return}var old=btn.textContent;btn.disabled=true;btn.textContent='Transmission…';
 try{var tot=ds.reduce(function(s,d){return s+d.h},0),t=await sb('POST','/rest/v1/rpc/send_week',{p_week:k,p_days:ds,p_total:tot});
 ds.forEach(function(x){S.sentD[x.d]=JSON.stringify(x)});S.delQ=(S.delQ||[]).filter(function(q){return ds.every(function(x){return x.d!==q.d})});S.sent[k]={t:t||new Date().toISOString()};save();toast(ds.length>1?'✅ '+ds.length+' jours transmis aux bureaux':'✅ Journée transmise aux bureaux');render()}
 catch(e){btn.disabled=false;btn.textContent=old;toast('❌ Transmission impossible : vérifie ta connexion et réessaie',1)}}
-function sendWeek(k,btn){return sendDays(k,pendingDays(k),btn)}
+function sendWeek(k,btn){flushDel();return sendDays(k,pendingDays(k),btn)}
 function weekText(r,w){var d=pd(w.week);return r.prenom+' '+r.nom+' — semaine du '+d.getDate()+'/'+(d.getMonth()+1)+' ('+fh(w.total_h||0)+')\n'+(w.days||[]).map(dayLine).join('\n')+'\nTotal : '+weekCodes(w.days)+'\n('+LEG+')'}
 var MN=['Janvier','Février','Mars','Avril','Mai','Juin','Juillet','Août','Septembre','Octobre','Novembre','Décembre'];
 function cs(days){var c=weekCodes(days);return c==='aucun'?'':' · '+c}
@@ -174,9 +178,9 @@ else{ADM.view=null;
 box.innerHTML=ADM.P.length?ADM.P.map(function(r){var me=r.id===S.me.uid,nw=(by[r.id]||[]).filter(function(w){return!w.seen}).length;
 return'<div class="row" style="align-items:center"><span data-open="'+esc(r.id)+'" style="flex:1;cursor:pointer;font-weight:600">'+esc(r.prenom)+' '+esc(r.nom)+(nw&&!me?' <i class="pill">+'+nw+'</i>':'')+'</span>'+(me?'':'<span class="x" data-id="'+esc(r.id)+'" data-nm="'+esc(r.prenom+' '+r.nom)+'" style="font-size:22px;padding:0 6px">✕</span>')+'</div>'}).join(''):'<div class="mu">Aucun inscrit.</div>';
 [].forEach.call(box.querySelectorAll('[data-open]'),function(b){b.onclick=function(){ADM.view=b.dataset.open;adminRender()}});
-[].forEach.call(box.querySelectorAll('[data-id]'),function(b){b.onclick=function(){if(confirm('Supprimer le compte de '+b.dataset.nm+' ?'))sb('DELETE','/rest/v1/profiles?id=eq.'+b.dataset.id).then(adminLoad).catch(function(){alert('Suppression impossible.')})}})}
+[].forEach.call(box.querySelectorAll('[data-id]'),function(b){b.onclick=function(){ask('Supprimer ce compte ?',esc(b.dataset.nm),'Supprimer',function(){sb('DELETE','/rest/v1/profiles?id=eq.'+b.dataset.id).then(adminLoad).catch(function(){toast('❌ Suppression impossible',1)})})}})}
 [].forEach.call(box.querySelectorAll('details[data-k]'),function(d){d.addEventListener('toggle',function(){ADM.open[d.dataset.k]=d.open})});
-[].forEach.call(box.querySelectorAll('[data-copy]'),function(b){b.onclick=function(){var x=ADM.w[b.dataset.copy],t=weekText(x.r,x.w);if(navigator.clipboard&&navigator.clipboard.writeText)navigator.clipboard.writeText(t).then(function(){toast('✅ Copié')},function(){prompt('Copie ce texte :',t)});else prompt('Copie ce texte :',t)}});
+[].forEach.call(box.querySelectorAll('[data-copy]'),function(b){b.onclick=function(){var x=ADM.w[b.dataset.copy],t=weekText(x.r,x.w);if(navigator.clipboard&&navigator.clipboard.writeText)navigator.clipboard.writeText(t).then(function(){toast('✅ Copié')},function(){showText(t)});else showText(t)}});
 [].forEach.call(box.querySelectorAll('[data-seen]'),function(b){b.onclick=function(){sb('POST','/rest/v1/rpc/mark_week_seen',{p_id:b.dataset.seen}).then(adminLoad).catch(function(){toast('❌ Action impossible',1)})}});
 refreshNav()}
 function popup(title,msg,btns){var o=document.createElement('div');o.className='ov';var b=document.createElement('div');b.className='pb';b.innerHTML='<h3>'+title+'</h3><div class="mu">'+msg+'</div>';
@@ -296,7 +300,7 @@ document.getElementById('sv').onclick=function(){S.days[sel]={h:parseH(document.
 [].forEach.call(el.querySelectorAll('[data-del]'),function(b){b.onclick=function(){delDay(b.dataset.del)}})}
 if(tab==='reglages'){var ap=function(inp){var v=parseFloat(String(inp.value).replace(',','.')),k=inp.dataset.s;if(isNaN(v))return;S.set[k]=v;if(k==='r1'){S.set.r2=Math.round(v*1250+1e-9)/1000;S.set.r3=Math.round(v*1500+1e-9)/1000;var q2=el.querySelector('[data-s="r2"]'),q3=el.querySelector('[data-s="r3"]');if(q2)q2.value=S.set.r2;if(q3)q3.value=S.set.r3}save()};
 [].forEach.call(el.querySelectorAll('[data-s]'),function(i){i.oninput=function(){ap(this)};i.onchange=function(){ap(this)}});
-document.getElementById('ah').onclick=function(){var m=document.getElementById('hm').value,p=parseH(document.getElementById('hv').value),e=parseFloat(document.getElementById('he').value.replace(',','.'))||0;if(m&&(p||e)){S.hist[m]={p:p,e:e,f:parseFloat(document.getElementById('hf').value.replace(',','.'))||0};save();render()}};var dm=document.getElementById('delme');if(dm)dm.onclick=function(){if(confirm('Supprimer ton compte en ligne ? Tes données saisies sur ce téléphone restent.'))sb('DELETE','/rest/v1/profiles?id=eq.'+S.me.uid).then(function(){S.me=null;S.ob=0;S.auth=null;OBMSG='Ton compte a été supprimé.';save();render()}).catch(function(){alert('Suppression impossible pour le moment : vérifie ta connexion.')})};
+document.getElementById('ah').onclick=function(){var m=document.getElementById('hm').value,p=parseH(document.getElementById('hv').value),e=parseFloat(document.getElementById('he').value.replace(',','.'))||0;if(m&&(p||e)){S.hist[m]={p:p,e:e,f:parseFloat(document.getElementById('hf').value.replace(',','.'))||0};save();render()}};var dm=document.getElementById('delme');if(dm)dm.onclick=function(){ask('Supprimer mon compte ?','Ton compte en ligne sera supprimé. Tes données saisies sur ce téléphone restent.','Supprimer',function(){sb('DELETE','/rest/v1/profiles?id=eq.'+S.me.uid).then(function(){S.me=null;S.ob=0;S.auth=null;OBMSG='Ton compte a été supprimé.';save();render()}).catch(function(){toast('❌ Suppression impossible : vérifie ta connexion',1)})})};
 [].forEach.call(el.querySelectorAll('[data-me]'),function(i){i.onchange=function(){S.me[this.dataset.me]=this.value.trim()||S.me[this.dataset.me];save()}});
 [].forEach.call(el.querySelectorAll('[data-dh]'),function(b){b.onclick=function(){delete S.hist[b.dataset.dh];save();render()}})}
 var T2=[['jour','<span class="ic">📅</span>Jour'],['semaine','<span class="ic">🗓️</span>Semaines'],['mois','<span class="ic">💶</span>Mois'],['reglages','<span class="ic">⚙️</span>Réglages']];
