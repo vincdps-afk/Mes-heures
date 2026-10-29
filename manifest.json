@@ -1,6 +1,6 @@
 {
- "name": "Mes heures – Van Haecke",
- "short_name": "Mes heures",
+ "name": "NetRoutier",
+ "short_name": "NetRoutier",
  "start_url": "./index.html",
  "scope": "./",
  "display": "standalone",

@@ -1,0 +1,73 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Installer NetRoutier</title>
+<link rel="manifest" href="manifest.json">
+<link rel="icon" href="icon-192.png">
+<link rel="apple-touch-icon" href="icon-192.png">
+<meta name="theme-color" content="#2f6df6">
+<style>
+:root{--bg:#f5f7fb;--card:#fff;--tx:#151a26;--mu:#7b8496;--ac:#2f6df6;--bd:#edf0f6}
+@media (prefers-color-scheme:dark){:root{--bg:#0e1116;--card:#171b22;--tx:#eef1f6;--mu:#8b94a5;--ac:#5f86ff;--bd:#232933}}
+*{box-sizing:border-box}
+body{margin:0;background:var(--bg);color:var(--tx);font:16px/1.5 system-ui,-apple-system,"Segoe UI",Roboto,sans-serif;-webkit-font-smoothing:antialiased}
+main{max-width:520px;margin:auto;padding:36px 18px 120px}
+.bc{background:#18181b;color:#fff;border-radius:26px;text-align:center;padding:34px 20px 28px;margin-bottom:22px}.bi svg{width:60px;height:60px}.bt{font-size:42px;font-weight:700;letter-spacing:-.02em;margin:14px 0 8px}.bs{color:#c9ccd3;font-size:17px}.bl{height:1px;background:#3a3a40;margin:26px 0}.bf{display:flex;justify-content:space-around}.bf div{display:flex;flex-direction:column;align-items:center;gap:8px;font-size:14px}.bf svg{width:28px;height:28px}.hero{text-align:center;margin-bottom:18px}
+h1{font-size:30px;letter-spacing:-.02em;margin:14px 0 6px}.hero p{color:var(--mu);margin:0}
+.card{background:var(--card);border:1px solid var(--bd);border-radius:22px;padding:20px;margin-bottom:16px}
+h2{font-size:13px;text-transform:uppercase;letter-spacing:.07em;color:var(--mu);margin:0 0 10px}
+ol{margin:0;padding-left:22px;line-height:1.9}
+.btn{display:block;width:100%;border:0;text-align:center;background:linear-gradient(135deg,#2f6df6,#6f93ff);color:#fff;text-decoration:none;font:600 17px system-ui,sans-serif;padding:17px;border-radius:18px;margin:6px 0 14px;cursor:pointer}
+.btn.s{background:var(--card);color:var(--tx);border:1px solid var(--bd);font-weight:500;font-size:15px;padding:13px}
+.warn{background:rgba(229,72,77,.1);border-radius:14px;padding:12px 14px;font-size:14px;margin-bottom:16px}
+.ok{background:rgba(31,157,85,.12);border-radius:14px;padding:14px;margin-bottom:16px;text-align:center;font-weight:600}
+.hide{display:none}
+.arrow{position:fixed;left:0;right:0;bottom:calc(10px + env(safe-area-inset-bottom,0px));text-align:center;font-size:44px;animation:b 1.1s infinite;color:var(--ac)}
+@keyframes b{0%,100%{transform:translateY(0)}50%{transform:translateY(10px)}}
+</style>
+</head>
+<body>
+<main>
+<div class="bc"><div class="bi"><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M14 18V6a2 2 0 0 0-2-2H4a2 2 0 0 0-2 2v11a1 1 0 0 0 1 1h2"/><path d="M15 18H9"/><path d="M19 18h2a1 1 0 0 0 1-1v-3.65a1 1 0 0 0-.22-.624l-3.48-4.35A1 1 0 0 0 17.52 8H14"/><circle cx="17" cy="18" r="2"/><circle cx="7" cy="18" r="2"/></svg></div><div class="bt">NetRoutier</div><div class="bs">Tes heures. Tes frais. Ton salaire.</div><div class="bl"></div><div class="bf">
+<div><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg><span>Heures</span></div>
+<div><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M4 2v20l2-1 2 1 2-1 2 1 2-1 2 1 2-1 2 1V2l-2 1-2-1-2 1-2-1-2 1-2-1-2 1Z"/><path d="M14 8H8"/><path d="M16 12H8"/><path d="M13 16H8"/></svg><span>Frais</span></div>
+<div><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M19 7V4a1 1 0 0 0-1-1H5a2 2 0 0 0 0 4h15a1 1 0 0 1 1 1v4h-3a2 2 0 0 0 0 4h3a1 1 0 0 0 1-1v-2a1 1 0 0 0-1-1"/><path d="M3 5v14a2 2 0 0 0 2 2h15a1 1 0 0 0 1-1v-4"/></svg><span>Net estimé</span></div></div></div>
+
+<div id="inapp" class="warn hide">⚠️ Tu es dans le navigateur intégré d’une autre appli (WhatsApp, Messenger…). Appuie sur <b>⋮</b> ou sur l’icône de navigateur, puis <b>Ouvrir dans Chrome</b> (ou <b>Safari</b> sur iPhone) pour pouvoir installer l’appli.</div>
+
+<div id="done" class="ok hide">✅ Installée ! Ouvre l’icône <b>NetRoutier</b> sur ton écran d’accueil.</div>
+
+<div id="android" class="hide">
+  <button class="btn" id="go">📲 Installer l’appli</button>
+  <p class="hero" style="margin:0 0 18px"><span style="color:var(--mu);font-size:14px">Ton téléphone te demandera de confirmer.</span></p>
+</div>
+
+<div id="manual" class="card hide"><h2 id="mt">Installer l’appli</h2><ol id="ms"></ol></div>
+
+<a class="btn s" href="./">Continuer sans installer</a>
+
+<div class="card"><h2>Au premier lancement</h2><ol><li>Crée ton compte avec ton prénom, ton nom et ton entreprise.</li><li>Choisis un <b>code personnel</b> (4 caractères minimum) : il te permettra de te reconnecter sur un autre téléphone.</li><li>Indique ton tarif de base et vérifie tes frais.</li></ol></div>
+</main>
+<div id="ar" class="arrow hide">⬇️</div>
+<script>
+(function(){
+var $=function(i){return document.getElementById(i)},ua=navigator.userAgent,dip=null;
+var ios=/iphone|ipad|ipod/i.test(ua)||(navigator.platform==='MacIntel'&&navigator.maxTouchPoints>1);
+var inapp=/FBAN|FBAV|Instagram|Messenger|MicroMessenger|Line\/|Snapchat|TikTok/i.test(ua);
+var standalone=(window.matchMedia&&matchMedia('(display-mode: standalone)').matches)||navigator.standalone===true;
+if(standalone){location.replace('./');return}
+if('serviceWorker' in navigator)navigator.serviceWorker.register('sw.js').catch(function(){});
+if(inapp)$('inapp').className='warn';
+function manual(){var m=$('manual');m.className='card';
+if(ios){$('mt').textContent='Installer sur iPhone';$('ms').innerHTML='<li>Ouvre cette page dans <b>Safari</b>.</li><li>Appuie sur <b>Partager</b> (le carré avec une flèche vers le haut) dans la barre du bas.</li><li>Choisis <b>Sur l’écran d’accueil</b>, puis <b>Ajouter</b>.</li><li>Ouvre ensuite l’icône <b>NetRoutier</b>.</li>';if(!inapp)$('ar').className='arrow'}
+else{$('mt').textContent='Installer sur Android';$('ms').innerHTML='<li>Ouvre cette page dans <b>Chrome</b>.</li><li>Appuie sur <b>⋮</b> (en haut à droite).</li><li>Choisis <b>Installer l’application</b> (ou <b>Ajouter à l’écran d’accueil</b>).</li><li>Ouvre ensuite l’icône <b>NetRoutier</b>.</li>'}}
+window.addEventListener('beforeinstallprompt',function(e){e.preventDefault();dip=e;$('android').className='';$('manual').className='card hide';$('ar').className='arrow hide'});
+window.addEventListener('appinstalled',function(){$('done').className='ok';$('android').className='hide';$('manual').className='card hide'});
+$('go').onclick=function(){if(!dip){manual();return}dip.prompt();dip.userChoice.then(function(r){if(r&&r.outcome==='accepted'){$('done').className='ok';$('android').className='hide'}else{manual()}})};
+setTimeout(function(){if(!dip&&$('done').className.indexOf('hide')>-1)manual()},1500);
+})();
+</script>
+</body>
+</html>
