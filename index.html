@@ -69,7 +69,7 @@ var D={r1:0,r2:0,r3:0,n1:9.92,n2:12.4,n3:16.54,t1:152,t2:185,mf:16.36,me:19.3,pd
 var S={days:{},set:Object.assign({},D),hist:{}};
 try{var s=JSON.parse(localStorage.getItem('vh')||'null');if(s){S.days=s.days||{};S.set=Object.assign({},D,s.set||{});S.hist=s.hist||{}}}catch(e){}
 for(var h0 in S.hist){if(typeof S.hist[h0]==='number')S.hist[h0]={p:S.hist[h0],e:0}}
-S.me=(s&&s.me)||null;S.ob=(s&&s.ob)||0;S.auth=(s&&s.auth)||null;S.net=!!(s&&s.net);S.sent=(s&&s.sent)||{};S.sentD=(s&&s.sentD)||{};Object.keys(S.sent).forEach(function(k){if(S.sent[k]&&S.sent[k].sig)try{JSON.parse(S.sent[k].sig).forEach(function(x){S.sentD[x.d]=JSON.stringify(x)})}catch(e){}});
+S.me=(s&&s.me)||null;S.ob=(s&&s.ob)||0;S.auth=(s&&s.auth)||null;S.net=!!(s&&s.net);S.delQ=(s&&s.delQ)||[];S.sent=(s&&s.sent)||{};S.sentD=(s&&s.sentD)||{};Object.keys(S.sent).forEach(function(k){if(S.sent[k]&&S.sent[k].sig)try{JSON.parse(S.sent[k].sig).forEach(function(x){S.sentD[x.d]=JSON.stringify(x)})}catch(e){}});
 function save(){try{localStorage.setItem('vh',JSON.stringify(S))}catch(e){}}
 var tab='jour',sel=iso(new Date());
 function iso(d){var m=d.getMonth()+1,j=d.getDate();return d.getFullYear()+'-'+(m<10?'0':'')+m+'-'+(j<10?'0':'')+j}
@@ -92,7 +92,7 @@ return'<div class="sec"><h3>Net potentiel</h3>'+(rt?rw('Net estimé',rt*h+f)+'<d
 function esc(x){return String(x==null?'':x).replace(/[&<>"]/g,function(c){return{'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]})}
 function hello(){return'<div class="hi"><div class="mu">'+esc(S.me.ent)+'</div><div class="hn">Bonjour '+esc(S.me.prenom)+' 👋</div></div>'}
 function pf(k,l,ro){return'<label>'+l+'</label><input data-me="'+k+'" value="'+esc(S.me[k])+'"'+(ro?' readonly':'')+'>'}
-var PEND=null,OBMSG='',SYNCING=false,MODE='new';
+var PEND=null,OBMSG='',SYNCING=false,MODE='new',FLUSHING=false;
 var SB=(typeof SB_URL!=='undefined'&&typeof SB_KEY!=='undefined'&&SB_URL&&SB_KEY)?{u:String(SB_URL).replace(/\/$/,''),k:SB_KEY}:null;
 function grpKey(e){return String(e).normalize('NFD').replace(/[\u0300-\u036f]/g,'').toLowerCase().replace(/[^a-z0-9]/g,'')}
 async function sbAuth(){if(!SB)return null;var a=S.auth,H={apikey:SB.k,'Content-Type':'application/json'};
@@ -114,7 +114,7 @@ gone('Mise à jour : crée ton compte (ou connecte-toi) pour continuer.');return
 S.me.sync=true;S.me.uid=uid;S.me.hp=!!rows[0].has_pin;
 if(S.me.ac){var code=S.me.ac,ok=await sb('POST','/rest/v1/rpc/claim_admin',{code:code});delete S.me.ac;if(ok)rows=[{admin:true}];else alert('Code administrateur incorrect.')}
 S.me.admin=!!rows[0].admin;save()}catch(e){}
-SYNCING=false;if(S.me&&!S.ob&&JSON.stringify([S.me,tab])!==before)render();if(S.me&&S.me.admin)adminBadge()}
+SYNCING=false;if(S.me&&!S.ob&&JSON.stringify([S.me,tab])!==before)render();if(S.me&&S.me.admin)adminBadge();flushDel()}
 var ADM={n:0,open:{},w:{},year:new Date().getFullYear()};
 function refreshNav(){var a=document.querySelector('nav a[data-t="admin"]');if(!a)return;var b=a.querySelector('.bd');if(ADM.n){if(!b){b=document.createElement('i');b.className='bd';a.appendChild(b)}b.textContent=ADM.n}else if(b)b.parentNode.removeChild(b)}
 async function adminBadge(){if(!SB||!S.me||!S.me.admin||!S.me.uid)return;try{var r=await sb('GET','/rest/v1/weeks?select=id&seen=eq.false&user_id=neq.'+S.me.uid);ADM.n=r.length;refreshNav()}catch(e){}}
@@ -129,9 +129,15 @@ function dayLine(x){var c=codeStr(codes(x));return['Dim','Lun','Mar','Mer','Jeu'
 function pendingDays(k){return weekData(k).filter(function(x){return S.sentD[x.d]!==JSON.stringify(x)})}
 function sendBlock(k){if(!SB||!S.me.sync)return'';var n=pendingDays(k).length,st=S.sent[k];
 return'<div style="text-align:center;margin-top:16px">'+(n?'<div class="mu" style="margin-bottom:8px">'+n+' jour'+(n>1?'s':'')+' à envoyer</div>':(st?'<div class="ok" style="margin:0 0 8px">✅ Tout est transmis (le '+fdt(st.t)+')</div>':''))+'<button class="'+(n?'':'s')+'" data-send="'+k+'" style="width:auto;padding:14px 22px;margin:0 auto">Envoyer mes heures et frais aux bureaux</button></div>'}
+async function flushDel(){if(!SB||!S.me||!S.me.sync||!S.delQ||!S.delQ.length||FLUSHING)return;FLUSHING=true;var n=0;
+try{while(S.delQ.length){var x=S.delQ[0];await sb('POST','/rest/v1/rpc/delete_day',{p_week:x.w,p_day:x.d});S.delQ.shift();save();n++}toast('✅ Suppression transmise aux bureaux')}catch(e){}
+FLUSHING=false}
+function delDay(k){var wk=iso(monday(pd(k))),was=S.sentD[k]!==undefined&&!!(SB&&S.me.sync);
+if(was&&!confirm('Cette journée a déjà été transmise aux bureaux. La supprimer aussi chez eux ?'))return;
+delete S.days[k];if(was){delete S.sentD[k];S.delQ=S.delQ||[];S.delQ.push({w:wk,d:k})}save();render();if(was)flushDel()}
 async function sendDays(k,ds,btn){btn=btn||{};if(!ds.length){toast('✅ Tout est déjà transmis aux bureaux');return}var old=btn.textContent;btn.disabled=true;btn.textContent='Transmission…';
 try{var tot=ds.reduce(function(s,d){return s+d.h},0),t=await sb('POST','/rest/v1/rpc/send_week',{p_week:k,p_days:ds,p_total:tot});
-ds.forEach(function(x){S.sentD[x.d]=JSON.stringify(x)});S.sent[k]={t:t||new Date().toISOString()};save();toast(ds.length>1?'✅ '+ds.length+' jours transmis aux bureaux':'✅ Journée transmise aux bureaux');render()}
+ds.forEach(function(x){S.sentD[x.d]=JSON.stringify(x)});S.delQ=(S.delQ||[]).filter(function(q){return ds.every(function(x){return x.d!==q.d})});S.sent[k]={t:t||new Date().toISOString()};save();toast(ds.length>1?'✅ '+ds.length+' jours transmis aux bureaux':'✅ Journée transmise aux bureaux');render()}
 catch(e){btn.disabled=false;btn.textContent=old;toast('❌ Transmission impossible : vérifie ta connexion et réessaie',1)}}
 function sendWeek(k,btn){return sendDays(k,pendingDays(k),btn)}
 function weekText(r,w){var d=pd(w.week);return r.prenom+' '+r.nom+' — semaine du '+d.getDate()+'/'+(d.getMonth()+1)+' ('+fh(w.total_h||0)+')\n'+(w.days||[]).map(dayLine).join('\n')+'\nTotal : '+weekCodes(w.days)+'\n('+LEG+')'}
@@ -187,7 +193,7 @@ for(var i=0;i<7;i++){var d=new Date(d0);d.setDate(d0.getDate()+i);var k=iso(d);i
 var t=weekCodes(x.ds);
 return'<div class="wcard"><table class="tb"><tr><th>Jour</th><th>Heures</th><th>Repas</th><th>CC</th><th>Nuit</th></tr>'+rows+'<tr class="tt"><td>Total</td><td>'+fh(x.h)+'</td><td colspan="3">'+(t==='aucun'?'':t)+'</td></tr></table>'+(SB&&S.me.sync?'<div class="mu" style="margin-top:6px">✓ = jour déjà transmis aux bureaux</div>':'')+sendBlock(x.k)+'</div>'}
 if(SB)setTimeout(syncMe,400);
-if(SB){setInterval(function(){if(!document.hidden)adminBadge()},60000);document.addEventListener('visibilitychange',function(){if(!document.hidden)adminBadge()})}
+if(SB){setInterval(function(){if(!document.hidden){adminBadge();flushDel();if(tab==='admin'&&S.me&&S.me.admin)adminLoad()}},60000);document.addEventListener('visibilitychange',function(){if(!document.hidden){adminBadge();flushDel()}})}
 function legalHTML(){return'<div class="mu" style="line-height:1.6">'+(SB?'Pour créer ton compte, ton <b>prénom, ton nom et ton entreprise</b> sont enregistrés en ligne et visibles par l’administrateur de ton entreprise, qui peut supprimer ton compte. Tes heures, tarifs et frais restent <b>sur ton téléphone</b>. Tu peux supprimer ton compte à tout moment dans Réglages. Ton code personnel est enregistré sous forme chiffrée et sert uniquement à te reconnecter. Pour créer un compte, tu dois accepter.':'Pour fonctionner, l’appli enregistre ton prénom, ton nom, ton entreprise, tes heures, tes tarifs et tes frais. Ces données restent <b>sur ton téléphone</b> : elles ne sont envoyées à aucun serveur aujourd’hui. Tu peux les modifier dans Réglages et les effacer à tout moment en supprimant les données du site dans ton navigateur. Pour créer un compte, tu dois accepter.')+'</div>'+
 '<details><summary>Mentions légales</summary><div class="mu" style="line-height:1.6;margin-top:8px"><b>Éditeur</b> : application gratuite et non commerciale, créée par Vincenzo De Pasquale.<br><b>Hébergement</b> : GitHub Pages (GitHub, Inc.)'+(SB?' ; base de données : Supabase, serveurs en Europe':'')+'.<br><b>Données traitées</b> : prénom, nom, entreprise, heures, tarifs et frais saisis. <b>Base légale</b> : ton consentement. <b>Durée</b> : '+(SB?'jusqu’à la suppression de ton compte, par toi ou par l’administrateur de ton entreprise.':'jusqu’à ce que tu effaces les données du site dans ton navigateur.')+'<br><b>Tes droits</b> (RGPD) : accès, rectification, effacement et retrait du consentement, que tu exerces directement dans l’appli (Réglages) ou en effaçant les données du site. '+(SB?'':'Si une fonction en ligne est ajoutée plus tard, tu en seras informé et ton accord sera demandé de nouveau.')+'<br><b>Estimations</b> : les montants affichés sont indicatifs, sans valeur contractuelle ; seule ta fiche de paie fait foi.</div></details>'}
 async function doLogin(p,n,e,pin,btn){btn.disabled=true;btn.textContent='Connexion…';var bad=function(m){var o=document.getElementById('oerr');if(o)o.textContent=m;btn.disabled=false;btn.textContent='Me connecter'};
@@ -287,7 +293,7 @@ if(tab==='semaine'){[].forEach.call(el.querySelectorAll('[data-send]'),function(
 if(tab==='jour'){document.getElementById('mm').value=d.m||'0';document.getElementById('m2').value=d.m2||'0';document.getElementById('nn').value=d.n||'0';
 document.getElementById('dt').onchange=function(){sel=this.value||sel;render()};
 document.getElementById('sv').onclick=function(){S.days[sel]={h:parseH(document.getElementById('hh').value),m:document.getElementById('mm').value,m2:document.getElementById('m2').value,n:document.getElementById('nn').value,p:document.getElementById('pp').checked};save();render();afterSave(sel)};
-[].forEach.call(el.querySelectorAll('[data-del]'),function(b){b.onclick=function(){delete S.days[b.dataset.del];save();render()}})}
+[].forEach.call(el.querySelectorAll('[data-del]'),function(b){b.onclick=function(){delDay(b.dataset.del)}})}
 if(tab==='reglages'){var ap=function(inp){var v=parseFloat(String(inp.value).replace(',','.')),k=inp.dataset.s;if(isNaN(v))return;S.set[k]=v;if(k==='r1'){S.set.r2=Math.round(v*1250+1e-9)/1000;S.set.r3=Math.round(v*1500+1e-9)/1000;var q2=el.querySelector('[data-s="r2"]'),q3=el.querySelector('[data-s="r3"]');if(q2)q2.value=S.set.r2;if(q3)q3.value=S.set.r3}save()};
 [].forEach.call(el.querySelectorAll('[data-s]'),function(i){i.oninput=function(){ap(this)};i.onchange=function(){ap(this)}});
 document.getElementById('ah').onclick=function(){var m=document.getElementById('hm').value,p=parseH(document.getElementById('hv').value),e=parseFloat(document.getElementById('he').value.replace(',','.'))||0;if(m&&(p||e)){S.hist[m]={p:p,e:e,f:parseFloat(document.getElementById('hf').value.replace(',','.'))||0};save();render()}};var dm=document.getElementById('delme');if(dm)dm.onclick=function(){if(confirm('Supprimer ton compte en ligne ? Tes données saisies sur ce téléphone restent.'))sb('DELETE','/rest/v1/profiles?id=eq.'+S.me.uid).then(function(){S.me=null;S.ob=0;S.auth=null;OBMSG='Ton compte a été supprimé.';save();render()}).catch(function(){alert('Suppression impossible pour le moment : vérifie ta connexion.')})};
