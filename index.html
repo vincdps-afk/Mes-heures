@@ -69,7 +69,7 @@ var D={r1:0,r2:0,r3:0,n1:9.92,n2:12.4,n3:16.54,t1:152,t2:185,mf:16.36,me:19.3,pd
 var S={days:{},set:Object.assign({},D),hist:{}};
 try{var s=JSON.parse(localStorage.getItem('vh')||'null');if(s){S.days=s.days||{};S.set=Object.assign({},D,s.set||{});S.hist=s.hist||{}}}catch(e){}
 for(var h0 in S.hist){if(typeof S.hist[h0]==='number')S.hist[h0]={p:S.hist[h0],e:0}}
-S.me=(s&&s.me)||null;S.ob=(s&&s.ob)||0;S.auth=(s&&s.auth)||null;S.net=!!(s&&s.net);S.delQ=(s&&s.delQ)||[];S.sent=(s&&s.sent)||{};S.sentD=(s&&s.sentD)||{};Object.keys(S.sent).forEach(function(k){if(S.sent[k]&&S.sent[k].sig)try{JSON.parse(S.sent[k].sig).forEach(function(x){S.sentD[x.d]=JSON.stringify(x)})}catch(e){}});
+S.me=(s&&s.me)||null;S.ob=(s&&s.ob)||0;S.auth=(s&&s.auth)||null;S.net=!!(s&&s.net);S.lock=(s&&s.lock)||null;S.delQ=(s&&s.delQ)||[];S.sent=(s&&s.sent)||{};S.sentD=(s&&s.sentD)||{};Object.keys(S.sent).forEach(function(k){if(S.sent[k]&&S.sent[k].sig)try{JSON.parse(S.sent[k].sig).forEach(function(x){S.sentD[x.d]=JSON.stringify(x)})}catch(e){}});
 function save(){try{localStorage.setItem('vh',JSON.stringify(S))}catch(e){}}
 var tab='jour',sel=iso(new Date());
 function iso(d){var m=d.getMonth()+1,j=d.getDate();return d.getFullYear()+'-'+(m<10?'0':'')+m+'-'+(j<10?'0':'')+j}
@@ -115,7 +115,7 @@ S.me.sync=true;S.me.uid=uid;S.me.hp=!!rows[0].has_pin;
 if(S.me.ac){var code=S.me.ac,ok=await sb('POST','/rest/v1/rpc/claim_admin',{code:code});delete S.me.ac;if(ok)rows=[{admin:true}];else toast('Code administrateur incorrect.',1)}
 S.me.admin=!!rows[0].admin;save()}catch(e){}
 SYNCING=false;if(S.me&&!S.ob&&JSON.stringify([S.me,tab])!==before)render();if(S.me&&S.me.admin)adminBadge();flushDel()}
-var ADM={n:0,open:{},w:{},year:new Date().getFullYear()};
+var ADM={n:0,open:{},w:{},year:new Date().getFullYear(),rY:new Date().getFullYear(),rM:new Date().getMonth()};
 function refreshNav(){var a=document.querySelector('nav a[data-t="admin"]');if(!a)return;var b=a.querySelector('.bd');if(ADM.n){if(!b){b=document.createElement('i');b.className='bd';a.appendChild(b)}b.textContent=ADM.n}else if(b)b.parentNode.removeChild(b)}
 async function adminBadge(){if(!SB||!S.me||!S.me.admin||!S.me.uid)return;try{var r=await sb('GET','/rest/v1/weeks?select=id&seen=eq.false&user_id=neq.'+S.me.uid);ADM.n=r.length;refreshNav()}catch(e){}}
 function toast(m,bad){var d=document.createElement('div');d.textContent=m;d.style.cssText='position:fixed;left:16px;right:16px;bottom:100px;z-index:9;padding:14px 16px;border-radius:16px;color:#fff;text-align:center;font-weight:600;box-shadow:0 8px 28px rgba(0,0,0,.25);background:'+(bad?'#e5484d':'#1f9d55');document.body.appendChild(d);setTimeout(function(){if(d.parentNode)d.parentNode.removeChild(d)},3500)}
@@ -169,14 +169,16 @@ try{ADM.P=await sb('GET','/rest/v1/profiles?select=id,prenom,nom,ent,created_at&
 ADM.n=ADM.Wk.filter(function(w){return!w.seen&&w.user_id!==S.me.uid}).length;adminRender()}
 catch(e){box.innerHTML='<div class="mu">Liste indisponible (vérifie ta connexion).</div>'}}
 function adminRender(){var box=document.getElementById('adm');if(!box||!ADM.P)return;var by={};ADM.w={};ADM.Wk.forEach(function(w){(by[w.user_id]=by[w.user_id]||[]).push(w)});
+if(ADM.view==='recap'){recapRender(box);refreshNav();return}
 var pick=ADM.view?ADM.P.filter(function(r){return r.id===ADM.view})[0]:null;
 if(pick){var ws=by[pick.id]||[];ws.forEach(function(w){ADM.w[w.id]={r:pick,w:w}});
 box.innerHTML='<div id="back" style="color:var(--ac);font-weight:600;cursor:pointer;margin-bottom:12px">← Retour</div><h2 style="margin:0 0 4px;font-size:18px;text-transform:none;letter-spacing:0;color:var(--tx)">'+esc(pick.prenom)+' '+esc(pick.nom)+'</h2><div style="display:flex;justify-content:space-between;align-items:center;margin:8px 0 4px"><span id="yp" style="color:var(--ac);font-size:26px;cursor:pointer;padding:0 10px">‹</span><b>'+ADM.year+'</b><span id="yn" style="color:var(--ac);font-size:26px;cursor:pointer;padding:0 10px">›</span></div>'+monthsHTML(pick,ws);
 document.getElementById('back').onclick=function(){ADM.view=null;adminRender()};
 document.getElementById('yp').onclick=function(){ADM.year--;adminRender()};document.getElementById('yn').onclick=function(){ADM.year++;adminRender()}}
 else{ADM.view=null;
-box.innerHTML=ADM.P.length?ADM.P.map(function(r){var me=r.id===S.me.uid,nw=(by[r.id]||[]).filter(function(w){return!w.seen}).length;
-return'<div class="row" style="align-items:center"><span data-open="'+esc(r.id)+'" style="flex:1;cursor:pointer;font-weight:600">'+esc(r.prenom)+' '+esc(r.nom)+(nw&&!me?' <i class="pill">+'+nw+'</i>':'')+'</span>'+(me?'':'<span class="x" data-id="'+esc(r.id)+'" data-nm="'+esc(r.prenom+' '+r.nom)+'" style="font-size:22px;padding:0 6px">✕</span>')+'</div>'}).join(''):'<div class="mu">Aucun inscrit.</div>';
+box.innerHTML='<button class="s" id="recapb" style="margin:0 0 12px">📋 Récapitulatif du mois</button>'+(ADM.P.length?ADM.P.map(function(r){var me=r.id===S.me.uid,nw=(by[r.id]||[]).filter(function(w){return!w.seen}).length;
+return'<div class="row" style="align-items:center"><span data-open="'+esc(r.id)+'" style="flex:1;cursor:pointer;font-weight:600">'+esc(r.prenom)+' '+esc(r.nom)+(nw&&!me?' <i class="pill">+'+nw+'</i>':'')+'</span>'+(me?'':'<span class="x" data-id="'+esc(r.id)+'" data-nm="'+esc(r.prenom+' '+r.nom)+'" style="font-size:22px;padding:0 6px">✕</span>')+'</div>'}).join(''):'<div class="mu">Aucun inscrit.</div>');
+document.getElementById('recapb').onclick=function(){var mx='';ADM.Wk.forEach(function(w){(w.days||[]).forEach(function(x){if(String(x.d)>mx)mx=String(x.d)})});if(mx){ADM.rY=+mx.slice(0,4);ADM.rM=+mx.slice(5,7)-1}ADM.view='recap';adminRender()};
 [].forEach.call(box.querySelectorAll('[data-open]'),function(b){b.onclick=function(){ADM.view=b.dataset.open;adminRender()}});
 [].forEach.call(box.querySelectorAll('[data-id]'),function(b){b.onclick=function(){ask('Supprimer ce compte ?',esc(b.dataset.nm),'Supprimer',function(){sb('DELETE','/rest/v1/profiles?id=eq.'+b.dataset.id).then(adminLoad).catch(function(){toast('❌ Suppression impossible',1)})})}})}
 [].forEach.call(box.querySelectorAll('details[data-k]'),function(d){d.addEventListener('toggle',function(){ADM.open[d.dataset.k]=d.open})});
@@ -185,7 +187,7 @@ return'<div class="row" style="align-items:center"><span data-open="'+esc(r.id)+
 refreshNav()}
 function popup(title,msg,btns){var o=document.createElement('div');o.className='ov';var b=document.createElement('div');b.className='pb';b.innerHTML='<h3>'+title+'</h3><div class="mu">'+msg+'</div>';
 var close=function(){if(o.parentNode)o.parentNode.removeChild(o)};
-btns.forEach(function(x){var e=document.createElement('button');e.textContent=x.t;if(x.s)e.className='s';e.onclick=function(){close();if(x.fn)x.fn()};b.appendChild(e)});
+btns.forEach(function(x){var e=document.createElement('button');e.textContent=x.t;if(x.s)e.className='s';e.onclick=function(){close();if(x.fn)x.fn(b)};b.appendChild(e)});
 o.appendChild(b);document.body.appendChild(o);return close}
 function afterSave(k){var d=pd(k),wk=iso(monday(d)),done=false,lab=['Dim','Lun','Mar','Mer','Jeu','Ven','Sam'][d.getDay()]+' '+d.getDate()+'/'+(d.getMonth()+1)+' · '+fh(S.days[k].h);
 var next=function(){var x=weekData(wk).filter(function(y){return y.d===k})[0];if(!SB||!S.me.sync||!x||S.sentD[k]===JSON.stringify(x))return;
@@ -196,6 +198,57 @@ function userWeekTable(x){var by={},rows='',d0=pd(x.k);x.ds.forEach(function(y){
 for(var i=0;i<7;i++){var d=new Date(d0);d.setDate(d0.getDate()+i);var k=iso(d);if(i<6||by[k])rows+=dayRow(by[k],k,by[k]&&S.sentD[k]===JSON.stringify(by[k]))}
 var t=weekCodes(x.ds);
 return'<div class="wcard"><table class="tb"><tr><th>Jour</th><th>Heures</th><th>Repas</th><th>CC</th><th>Nuit</th></tr>'+rows+'<tr class="tt"><td>Total</td><td>'+fh(x.h)+'</td><td colspan="3">'+(t==='aucun'?'':t)+'</td></tr></table>'+(SB&&S.me.sync?'<div class="mu" style="margin-top:6px">✓ = jour déjà transmis aux bureaux</div>':'')+sendBlock(x.k)+'</div>'}
+function pdfEnc(t){return String(t).replace(/€/g,'\x80').replace(/[–—]/g,'-').replace(/[’‘]/g,"'").replace(/[“”]/g,'"').replace(/[^\x00-\xFF]/g,'?').replace(/\\/g,'\\\\').replace(/\(/g,'\\(').replace(/\)/g,'\\)')}
+function pdfBuild(title,sub,cols,rows,foot){var P=[],cur,y,T=function(x,yy,t,sz,b){cur.push('BT /F'+(b?2:1)+' '+sz+' Tf '+x+' '+yy+' Td ('+pdfEnc(t)+') Tj ET')},
+L=function(yy){cur.push('0.8 G 40 '+yy+' m 555 '+yy+' l S')},
+np=function(){cur=[];P.push(cur);y=800;T(40,y,title,15,1);y-=18;T(40,y,sub,10);y-=24;cols.forEach(function(c){T(c.x,y,c.t,9,1)});L(y-4);y-=18};
+np();rows.forEach(function(r){if(y<70)np();var b=!Array.isArray(r)&&r.bold;(Array.isArray(r)?r:r.c).forEach(function(v,i){T(cols[i].x,y,v,10,b)});if(b)L(y+12);y-=16});
+y-=8;(foot||[]).forEach(function(f){if(y<60)np();T(40,y,f,8);y-=12});
+var out='%PDF-1.4\n',off={},add=function(n,s){off[n]=out.length;out+=n+' 0 obj\n'+s+'\nendobj\n'},N=4+2*P.length,kids=[];
+P.forEach(function(p,i){kids.push((5+2*i)+' 0 R')});
+add(1,'<< /Type /Catalog /Pages 2 0 R >>');add(2,'<< /Type /Pages /Kids ['+kids.join(' ')+'] /Count '+P.length+' >>');
+add(3,'<< /Type /Font /Subtype /Type1 /BaseFont /Helvetica /Encoding /WinAnsiEncoding >>');add(4,'<< /Type /Font /Subtype /Type1 /BaseFont /Helvetica-Bold /Encoding /WinAnsiEncoding >>');
+P.forEach(function(p,i){var c=p.join('\n');add(5+2*i,'<< /Type /Page /Parent 2 0 R /MediaBox [0 0 595 842] /Resources << /Font << /F1 3 0 R /F2 4 0 R >> >> /Contents '+(6+2*i)+' 0 R >>');add(6+2*i,'<< /Length '+c.length+' >>\nstream\n'+c+'\nendstream')});
+var x=out.length;out+='xref\n0 '+(N+1)+'\n0000000000 65535 f \n';for(var n=1;n<=N;n++)out+=('0000000000'+off[n]).slice(-10)+' 00000 n \n';
+out+='trailer\n<< /Size '+(N+1)+' /Root 1 0 R >>\nstartxref\n'+x+'\n%%EOF';
+var u=new Uint8Array(out.length);for(var i=0;i<out.length;i++)u[i]=out.charCodeAt(i)&255;return u}
+function savePDF(b,name){var dl=function(){var u=URL.createObjectURL(new Blob([b],{type:'application/pdf'})),a=document.createElement('a');a.href=u;a.download=name;document.body.appendChild(a);a.click();setTimeout(function(){document.body.removeChild(a);URL.revokeObjectURL(u)},4000);toast('✅ PDF enregistré')},f=null;
+try{f=new File([b],name,{type:'application/pdf'})}catch(e){}
+if(f&&navigator.canShare&&navigator.canShare({files:[f]})){navigator.share({files:[f],title:name}).catch(function(e){if(!e||e.name!=='AbortError')dl()});return}dl()}
+function ymLabel(ym){return MN[+ym.slice(5)-1]+' '+ym.slice(0,4)}
+function today8(){var n=new Date();return n.getDate()+'/'+(n.getMonth()+1)+'/'+n.getFullYear()}
+function monthPDF(ym){var ds=Object.keys(S.days).filter(function(k){return k.slice(0,7)===ym}).sort(),tot={h:0,rf:0,re:0,cc:0,nf:0,ne:0},rows=[],rp=function(c){return[cell(c.rf,'rf'),cell(c.re,'re')].filter(Boolean).join('  ')},nu=function(c){return[cell(c.nf,'nf'),cell(c.ne,'ne')].filter(Boolean).join('  ')};
+ds.forEach(function(k){var x=S.days[k],c=codes(x),d=pd(k);tot.h+=x.h||0;for(var q in c)tot[q]+=c[q];
+rows.push([['Dim','Lun','Mar','Mer','Jeu','Ven','Sam'][d.getDay()]+' '+k.slice(8)+'/'+k.slice(5,7),fh(x.h||0),rp(c),c.cc?'cc':'',nu(c)])});
+rows.push({bold:1,c:['Total',fh(tot.h),rp(tot),tot.cc?tot.cc+' cc':'',nu(tot)]});
+return pdfBuild('Mes heures - '+S.me.prenom+' '+S.me.nom,S.me.ent+' · '+ymLabel(ym),[{t:'Jour',x:40},{t:'Heures',x:130},{t:'Repas',x:210},{t:'CC',x:330},{t:'Nuit',x:400}],rows,[LEG,'Document généré le '+today8()+' par l’appli Mes heures. Aucun montant ne figure dans ce document.'])}
+function recapData(Y,m){var ym=Y+'-'+(m<9?'0':'')+(m+1),R=ADM.P.map(function(r){var t={h:0,rf:0,re:0,cc:0,nf:0,ne:0};ADM.Wk.forEach(function(w){if(w.user_id!==r.id)return;(w.days||[]).forEach(function(x){if(String(x.d).slice(0,7)!==ym)return;var c=codes(x);t.h+=+x.h||0;for(var k in c)t[k]+=c[k]})});return{r:r,t:t}});
+R.sort(function(a,b){return(a.r.nom+a.r.prenom).localeCompare(b.r.nom+b.r.prenom)});return R}
+function recapTot(R){var T={h:0,rf:0,re:0,cc:0,nf:0,ne:0};R.forEach(function(x){for(var k in T)T[k]+=x.t[k]});return T}
+function recapCells(t){return[t.h?fh(t.h):'—',t.rf||'',t.re||'',t.cc||'',t.nf||'',t.ne||'']}
+function recapText(R,T){var o='Récapitulatif '+S.me.ent+' - '+MN[ADM.rM]+' '+ADM.rY+'\n';R.forEach(function(x){o+=x.r.prenom+' '+x.r.nom+' : '+(x.t.h?fh(x.t.h):'aucune heure')+(codeStr(x.t)?' · '+codeStr(x.t):'')+'\n'});return o+'TOTAL : '+fh(T.h)+(codeStr(T)?' · '+codeStr(T):'')+'\n('+LEG+')'}
+function recapRender(box){var R=recapData(ADM.rY,ADM.rM),T=recapTot(R),cells=function(t){return recapCells(t).map(function(v){return'<td>'+v+'</td>'}).join('')};
+box.innerHTML='<div id="back" style="color:var(--ac);font-weight:600;cursor:pointer;margin-bottom:12px">← Retour</div><h2 style="margin:0 0 4px;font-size:18px;text-transform:none;letter-spacing:0;color:var(--tx)">Récapitulatif du mois</h2><div style="display:flex;justify-content:space-between;align-items:center;margin:8px 0 8px"><span id="rp" style="color:var(--ac);font-size:26px;cursor:pointer;padding:0 10px">‹</span><b>'+MN[ADM.rM]+' '+ADM.rY+'</b><span id="rn" style="color:var(--ac);font-size:26px;cursor:pointer;padding:0 10px">›</span></div>'+
+'<div class="wrap"><table class="tb"><tr><th>Chauffeur</th><th>Heures</th><th>rf</th><th>re</th><th>cc</th><th>nf</th><th>ne</th></tr>'+R.map(function(x){return'<tr><td>'+esc(x.r.prenom+' '+x.r.nom)+'</td>'+cells(x.t)+'</tr>'}).join('')+'<tr class="tt"><td>Total</td>'+cells(T)+'</tr></table></div>'+
+'<div style="display:flex;gap:8px;margin-top:14px"><button class="s" id="rcp" style="margin:0">Copier</button><button id="rpdf" style="margin:0">PDF</button></div>';
+document.getElementById('back').onclick=function(){ADM.view=null;adminRender()};
+document.getElementById('rp').onclick=function(){ADM.rM--;if(ADM.rM<0){ADM.rM=11;ADM.rY--}recapRender(box)};document.getElementById('rn').onclick=function(){ADM.rM++;if(ADM.rM>11){ADM.rM=0;ADM.rY++}recapRender(box)};
+document.getElementById('rcp').onclick=function(){var t=recapText(R,T);if(navigator.clipboard&&navigator.clipboard.writeText)navigator.clipboard.writeText(t).then(function(){toast('✅ Copié')},function(){showText(t)});else showText(t)};
+document.getElementById('rpdf').onclick=function(){var rows=R.map(function(x){return[x.r.prenom+' '+x.r.nom].concat(recapCells(x.t).map(String))});rows.push({bold:1,c:['Total'].concat(recapCells(T).map(String))});
+savePDF(pdfBuild('Récapitulatif - '+S.me.ent,MN[ADM.rM]+' '+ADM.rY,[{t:'Chauffeur',x:40},{t:'Heures',x:250},{t:'rf',x:325},{t:'re',x:365},{t:'cc',x:405},{t:'nf',x:445},{t:'ne',x:485}],rows,[LEG,'Document généré le '+today8()+' par l’appli Mes heures.']),'recapitulatif-'+ADM.rY+'-'+(ADM.rM<9?'0':'')+(ADM.rM+1)+'.pdf')}}
+var LOCKED=!!S.lock,LKF=0,LKT=0,HID=0;
+async function lkHash(code,salt){var t=salt+':'+code;try{if(window.crypto&&crypto.subtle){var b=await crypto.subtle.digest('SHA-256',new TextEncoder().encode(t));return Array.prototype.map.call(new Uint8Array(b),function(x){return('0'+x.toString(16)).slice(-2)}).join('')}}catch(e){}var h=5381;for(var i=0;i<t.length;i++)h=((h<<5)+h+t.charCodeAt(i))|0;return'f'+h}
+function lockScreen(el){document.getElementById('nav').innerHTML='';
+el.innerHTML='<div id="lk" class="hero" style="margin-top:60px"><div class="logo">🔒</div><h1>Appli verrouillée</h1><div class="mu">Entre ton code de verrouillage.</div></div><div class="card"><input id="lkc" type="password" inputmode="numeric" autocomplete="off" placeholder="Code"></div><button id="lku">Déverrouiller</button><div class="mu" id="lke" style="text-align:center;margin-top:10px"></div><div style="text-align:center;margin-top:16px"><a href="#" id="lkf" style="color:var(--ac);font-weight:600">Code oublié ?</a></div>';
+var go=async function(){var m=document.getElementById('lke');if(Date.now()<LKT){m.textContent='Trop d’essais : réessaie dans quelques secondes.';return}var c=document.getElementById('lkc').value.trim();
+if(await lkHash(c,S.lock.s)===S.lock.h){LOCKED=false;LKF=0;render()}else{LKF++;if(LKF>=5){LKT=Date.now()+30000;LKF=0}m.textContent='Code incorrect.';document.getElementById('lkc').value=''}};
+document.getElementById('lku').onclick=go;document.getElementById('lkc').onkeydown=function(e){if(e.key==='Enter')go()};
+document.getElementById('lkf').onclick=function(e){e.preventDefault();ask('Code oublié ?','Pour débloquer l’appli, les données de cet appareil doivent être effacées (tes heures saisies seront perdues). Ton compte en ligne reste : tu te reconnectes avec ton code personnel.','Effacer et débloquer',function(){try{localStorage.clear()}catch(x){}location.reload()})}}
+document.addEventListener('visibilitychange',function(){if(document.hidden)HID=Date.now();else if(S.lock&&HID&&Date.now()-HID>60000){LOCKED=true;render()}});
+function setLock(){popup(S.lock?'Changer le code de verrouillage':'Verrouiller l’appli','<div class="mu">Ce code sera demandé à chaque ouverture de l’appli.</div><input id="lk1" type="password" inputmode="numeric" autocomplete="off" placeholder="Code (4 caractères minimum)" style="margin-top:10px">',[{t:'Enregistrer',fn:async function(b){var c=b.querySelector('#lk1').value.trim();if(c.length<4){toast('Le code doit faire 4 caractères minimum',1);return}var s=Math.random().toString(36).slice(2);S.lock={s:s,h:await lkHash(c,s)};LOCKED=false;save();toast('🔒 Verrouillage activé');render()}},{t:'Annuler',s:1}])}
+function changePin(){popup('Changer mon code personnel','<input id="pc0" type="password" autocomplete="off" placeholder="Code actuel" style="margin-top:10px"><input id="pc1" type="password" autocomplete="off" placeholder="Nouveau code (4 caractères minimum)" style="margin-top:10px">',[{t:'Enregistrer',fn:function(b){var o=b.querySelector('#pc0').value.trim(),n=b.querySelector('#pc1').value.trim();if(n.length<4){toast('Le nouveau code doit faire 4 caractères minimum',1);return}
+sb('POST','/rest/v1/rpc/change_pin',{p_old:o,p_new:n}).then(function(r){toast(r&&r.ok?'✅ Code personnel modifié':(r&&r.err==='compte_verrouille'?'Trop d’essais : réessaie dans 15 minutes':'Code actuel incorrect'),!(r&&r.ok))}).catch(function(){toast('❌ Connexion impossible : réessaie',1)})}},{t:'Annuler',s:1}])}
+function lastYM(){var ks=Object.keys(S.days).filter(function(k){return(S.days[k].h||0)>0}).sort();return ks.length?ks[ks.length-1].slice(0,7):iso(new Date()).slice(0,7)}
 if(SB)setTimeout(syncMe,400);
 if(SB){setInterval(function(){if(!document.hidden){adminBadge();flushDel();if(tab==='admin'&&S.me&&S.me.admin)adminLoad()}},60000);document.addEventListener('visibilitychange',function(){if(!document.hidden){adminBadge();flushDel()}})}
 function legalHTML(){return'<div class="mu" style="line-height:1.6">'+(SB?'Pour créer ton compte, ton <b>prénom, ton nom et ton entreprise</b> sont enregistrés en ligne et visibles par l’administrateur de ton entreprise, qui peut supprimer ton compte. Tes heures, tarifs et frais restent <b>sur ton téléphone</b>. Tu peux supprimer ton compte à tout moment dans Réglages. Ton code personnel est enregistré sous forme chiffrée et sert uniquement à te reconnecter. Pour créer un compte, tu dois accepter.':'Pour fonctionner, l’appli enregistre ton prénom, ton nom, ton entreprise, tes heures, tes tarifs et tes frais. Ces données restent <b>sur ton téléphone</b> : elles ne sont envoyées à aucun serveur aujourd’hui. Tu peux les modifier dans Réglages et les effacer à tout moment en supprimant les données du site dans ton navigateur. Pour créer un compte, tu dois accepter.')+'</div>'+
@@ -250,6 +303,7 @@ function weekdays(y,m,upto){var c=0,n=new Date(y,m+1,0).getDate();for(var i=1;i<
 function V(h){return h.n?h.n:''}
 function render(){
 var el=document.getElementById('app'),h='';
+if(S.lock&&LOCKED){if(!document.getElementById('lk'))lockScreen(el);return}
 if(!S.me||S.ob||(SB&&S.me.sync&&S.me.hp===false)){onboard(el);return}
 if(tab==='jour'){
 var d=S.days[sel]||{h:0,m:'0',p:false,n:'0'};
@@ -268,23 +322,27 @@ if(tab==='semaine'){var cw=iso(monday(new Date())),wds=weekData(cw),wh=wds.reduc
 h+='<h1>Semaine en cours</h1><div class="card"><div class="lab">Du '+w0.getDate()+'/'+(w0.getMonth()+1)+' au '+w6.getDate()+'/'+(w6.getMonth()+1)+'</div>'+userWeekTable({k:cw,ds:wds,h:wh})+'</div>'
 }
 if(tab==='mois'){
-var now=new Date(),key=iso(now).slice(0,7),M=month(key),H=M.h,T=tiers(H),c=S.set;
-var el2=weekdays(now.getFullYear(),now.getMonth(),now.getDate()),tt=weekdays(now.getFullYear(),now.getMonth()),pr=el2?M.h/el2*tt:0,Hp=pr,Tp=tiers(Hp),fp=el2?M.al/el2*tt:0;
+var key=lastYM(),Y0=+key.slice(0,4),mi=+key.slice(5)-1,M=month(key),H=M.h,T=tiers(H),c=S.set,cal=iso(new Date()).slice(0,7),lastD=0;
+Object.keys(S.days).forEach(function(k){if(k.slice(0,7)===key&&(S.days[k].h||0)>0)lastD=Math.max(lastD,+k.slice(8))});
+var upto=cal===key?Math.max(new Date().getDate(),lastD):(cal>key?new Date(Y0,mi+1,0).getDate():lastD);
+var el2=weekdays(Y0,mi,upto),tt=weekdays(Y0,mi),pr=el2?M.h/el2*tt:0,Hp=pr,Tp=tiers(Hp),fp=el2?M.al/el2*tt:0;
 var hk=Object.keys(S.hist),av=hk.length?hk.reduce(function(s,k){return s+S.hist[k].p},0)/hk.length:0;
 var w=tt?Math.min(1,el2/tt):1,Hb=av?w*Hp+(1-w)*av:Hp,fb=avgF()?w*fp+(1-w)*avgF():fp,nt=!!S.net,Tb=tiers(Hb,nt),rt=ratio();
 h+=hello()+'<div class="card" style="padding:14px 18px"><label style="display:flex;align-items:center;gap:12px;margin:0;color:var(--tx);font-size:16px"><input type="checkbox" id="netc" style="width:22px;height:22px;margin:0;padding:0"'+(nt?' checked':'')+'> Net <span class="mu">(tous les montants avec tes taux nets)</span></label></div>'+(c.r1?'':'<div class="card"><div class="mu">Renseigne tes taux et indemnités dans Réglages pour voir tes montants.</div></div>')+
-'<div class="card hero2"><div class="lab">À ce jour'+(nt?' · net':'')+'</div><div class="big">'+eur(T.pay+M.al)+'</div><div class="sub">'+fh(H)+' payées · '+(nt?'net · ':'')+'frais compris</div><details><summary>Détails</summary>'+
+'<div class="card hero2"><div class="lab">'+MN[mi]+' '+Y0+' · à ce jour'+(nt?' · net':'')+'</div><div class="big">'+eur(T.pay+M.al)+'</div><div class="sub">'+fh(H)+' payées · '+(nt?'net · ':'')+'frais compris</div><details><summary>Détails</summary>'+
 '<div class="row"><span>Base · jusqu’à '+c.t1+'h</span><span>'+fh(T.a)+' · '+eur(T.a*(nt?c.n1:c.r1))+'</span></div>'+
 '<div class="row"><span>125 % · '+c.t1+'h–'+c.t2+'h</span><span>'+fh(T.b)+' · '+eur(T.b*(nt?c.n2:c.r2))+'</span></div>'+
 '<div class="row"><span>150 % · à partir de '+c.t2+'h</span><span>'+fh(T.e)+' · '+eur(T.e*(nt?c.n3:c.r3))+'</span></div>'+
 '<div class="row"><span>Frais</span><span>'+eur(M.al)+'</span></div>'+
 '<div class="mu" style="margin-top:8px">Saisi : '+fh(M.h)+' sur '+M.n+' jours</div></details></div>'+
-'<div class="card"><div class="lab">Estimation fin de mois</div><div class="big">'+eur(Tb.pay+fb)+'</div><div class="sub">≈ '+fh(Hb)+' payées · '+(nt?'net · ':'')+'frais compris</div><div class="mu" style="margin-top:8px">Plus tu renseignes d’informations (heures, frais, mois précédents), plus l’estimation sera proche du réel.</div><details><summary>Détails</summary>'+rw(nt?'Heures (net)':'Heures',Tb.pay)+rw('Frais',fb)+(nt?'':rt?rw('Net potentiel',rt*Tb.pay+fb):'<div class="mu" style="margin-top:8px">Ajoute tes mois précédents dans Réglages pour estimer ton net.</div>')+'</details></div>';
+'<div class="card"><div class="lab">Estimation · '+MN[mi]+'</div><div class="big">'+eur(Tb.pay+fb)+'</div><div class="sub">≈ '+fh(Hb)+' payées · '+(nt?'net · ':'')+'frais compris</div><div class="mu" style="margin-top:8px">Plus tu renseignes d’informations (heures, frais, mois précédents), plus l’estimation sera proche du réel.</div><details><summary>Détails</summary>'+rw(nt?'Heures (net)':'Heures',Tb.pay)+rw('Frais',fb)+(nt?'':rt?rw('Net potentiel',rt*Tb.pay+fb):'<div class="mu" style="margin-top:8px">Ajoute tes mois précédents dans Réglages pour estimer ton net.</div>')+'</details></div>';
+var ms={};Object.keys(S.days).forEach(function(k){ms[k.slice(0,7)]=1});ms[key]=1;
+h+='<div class="card"><h2>Exporter en PDF</h2><select id="pdfm">'+Object.keys(ms).sort().reverse().map(function(m){return'<option value="'+m+'"'+(m===key?' selected':'')+'>'+ymLabel(m)+'</option>'}).join('')+'</select><button class="s" id="pdfb">Enregistrer le mois en PDF</button><div class="mu" style="margin-top:8px">Heures et frais du mois, sans aucun montant.</div></div>';
 }
 if(tab==='admin'&&S.me.admin){h+='<h1>Administration</h1><div class="card" id="adm"><div class="mu">Chargement…</div></div>'}
 if(tab==='reglages'){
 var c=S.set,f=function(k,l,u){return'<label>'+l+'</label><div class="fw"><input data-s="'+k+'" inputmode="decimal" value="'+c[k]+'">'+(u?'<span class="eu">'+u+'</span>':'')+'</div>'};
-h+='<h1>Réglages</h1><div class="card"><h2>Mon profil</h2>'+pf('prenom','Prénom',S.me.sync)+pf('nom','Nom',S.me.sync)+pf('ent','Entreprise',S.me.sync)+(S.me.admin?'<div class="mu" style="margin-top:12px">🔑 Mode administrateur activé</div>':'')+'<details><summary>Mentions légales et données</summary><div style="margin-top:8px">'+legalHTML()+'</div></details>'+(S.me.sync?'<button class="s" id="delme" style="color:#e5484d">Supprimer mon compte</button>':'')+'</div><div class="card"><h2>Taux horaires</h2><div class="g2">'+f('r1','Tarif de base','€/h')+f('r2','Tarif 125 %','€/h')+f('r3','Tarif 150 %','€/h')+f('t1','125 % à partir de','h')+f('t2','150 % à partir de','h')+'</div></div>'+
+h+='<h1>Réglages</h1><div class="card"><h2>Mon profil</h2>'+pf('prenom','Prénom',S.me.sync)+pf('nom','Nom',S.me.sync)+pf('ent','Entreprise',S.me.sync)+(S.me.admin?'<div class="mu" style="margin-top:12px">🔑 Mode administrateur activé</div>':'')+'<details><summary>Mentions légales et données</summary><div style="margin-top:8px">'+legalHTML()+'</div></details>'+(S.me.sync?'<button class="s" id="delme" style="color:#e5484d">Supprimer mon compte</button>':'')+'</div><div class="card"><h2>Sécurité</h2>'+(S.me.sync?'<button class="s" id="chpin" style="margin-top:0">Changer mon code personnel</button>':'')+'<button class="s" id="lkset"'+(S.me.sync?'':' style="margin-top:0"')+'>'+(S.lock?'Modifier le code de verrouillage':'Verrouiller l’appli par un code')+'</button>'+(S.lock?'<button class="s" id="lkoff">Désactiver le verrouillage</button>':'')+'</div><div class="card"><h2>Taux horaires</h2><div class="g2">'+f('r1','Tarif de base','€/h')+f('r2','Tarif 125 %','€/h')+f('r3','Tarif 150 %','€/h')+f('t1','125 % à partir de','h')+f('t2','150 % à partir de','h')+'</div></div>'+
 '<div class="card"><h2>Taux nets</h2><div class="g2">'+f('n1','Net · base','€/h')+f('n2','Net · 125 %','€/h')+f('n3','Net · 150 %','€/h')+'</div><div class="mu" style="margin-top:10px">Ces taux servent quand tu coches « Net » dans l’onglet Mois.</div></div>'+
 '<div class="card"><h2>Indemnités (€)</h2><div class="g2">'+f('mf','Repas France','€')+f('me','Repas étranger','€')+f('pd','Casse-croûte','€')+f('nf','Nuit France','€')+f('ne','Nuit étranger','€')+'</div></div>'+
 '<div class="card"><h2>Mois précédents (fiches de paie)</h2><label>Mois</label><input type="month" id="hm"><label>Heures payées (ex. 165h30)</label><input id="hv" placeholder="0h00"><label>Montant total reçu (€, frais compris)</label><input id="he" inputmode="decimal" placeholder="0,00"><label>Dont frais / indemnités (€)</label><input id="hf" inputmode="decimal" placeholder="0,00"><button class="s" id="ah">Ajouter ce mois</button><div style="margin-top:8px">'+
@@ -292,7 +350,7 @@ Object.keys(S.hist).sort().reverse().map(function(k){var x=S.hist[k];return'<div
 }
 el.innerHTML=h;
 if(tab==='admin'&&S.me.admin)adminLoad();
-if(tab==='mois'){var nc=document.getElementById('netc');if(nc)nc.onchange=function(){S.net=this.checked;save();render()}}
+if(tab==='mois'){var nc=document.getElementById('netc');if(nc)nc.onchange=function(){S.net=this.checked;save();render()};var pb=document.getElementById('pdfb');if(pb)pb.onclick=function(){var ym=document.getElementById('pdfm').value;savePDF(monthPDF(ym),'mes-heures-'+ym+'.pdf')}}
 if(tab==='semaine'){[].forEach.call(el.querySelectorAll('[data-send]'),function(b){b.onclick=function(){sendWeek(b.dataset.send,b)}});}
 if(tab==='jour'){document.getElementById('mm').value=d.m||'0';document.getElementById('m2').value=d.m2||'0';document.getElementById('nn').value=d.n||'0';
 document.getElementById('dt').onchange=function(){sel=this.value||sel;render()};
@@ -300,7 +358,8 @@ document.getElementById('sv').onclick=function(){S.days[sel]={h:parseH(document.
 [].forEach.call(el.querySelectorAll('[data-del]'),function(b){b.onclick=function(){delDay(b.dataset.del)}})}
 if(tab==='reglages'){var ap=function(inp){var v=parseFloat(String(inp.value).replace(',','.')),k=inp.dataset.s;if(isNaN(v))return;S.set[k]=v;if(k==='r1'){S.set.r2=Math.round(v*1250+1e-9)/1000;S.set.r3=Math.round(v*1500+1e-9)/1000;var q2=el.querySelector('[data-s="r2"]'),q3=el.querySelector('[data-s="r3"]');if(q2)q2.value=S.set.r2;if(q3)q3.value=S.set.r3}save()};
 [].forEach.call(el.querySelectorAll('[data-s]'),function(i){i.oninput=function(){ap(this)};i.onchange=function(){ap(this)}});
-document.getElementById('ah').onclick=function(){var m=document.getElementById('hm').value,p=parseH(document.getElementById('hv').value),e=parseFloat(document.getElementById('he').value.replace(',','.'))||0;if(m&&(p||e)){S.hist[m]={p:p,e:e,f:parseFloat(document.getElementById('hf').value.replace(',','.'))||0};save();render()}};var dm=document.getElementById('delme');if(dm)dm.onclick=function(){ask('Supprimer mon compte ?','Ton compte en ligne sera supprimé. Tes données saisies sur ce téléphone restent.','Supprimer',function(){sb('DELETE','/rest/v1/profiles?id=eq.'+S.me.uid).then(function(){S.me=null;S.ob=0;S.auth=null;OBMSG='Ton compte a été supprimé.';save();render()}).catch(function(){toast('❌ Suppression impossible : vérifie ta connexion',1)})})};
+document.getElementById('ah').onclick=function(){var m=document.getElementById('hm').value,p=parseH(document.getElementById('hv').value),e=parseFloat(document.getElementById('he').value.replace(',','.'))||0;if(m&&(p||e)){S.hist[m]={p:p,e:e,f:parseFloat(document.getElementById('hf').value.replace(',','.'))||0};save();render()}};var q0=function(i,f){var e=document.getElementById(i);if(e)e.onclick=f};q0('chpin',changePin);q0('lkset',setLock);q0('lkoff',function(){ask('Désactiver le verrouillage ?','L’appli s’ouvrira sans code.','Désactiver',function(){S.lock=null;save();render()})});
+var dm=document.getElementById('delme');if(dm)dm.onclick=function(){ask('Supprimer mon compte ?','Ton compte en ligne sera supprimé. Tes données saisies sur ce téléphone restent.','Supprimer',function(){sb('DELETE','/rest/v1/profiles?id=eq.'+S.me.uid).then(function(){S.me=null;S.ob=0;S.auth=null;OBMSG='Ton compte a été supprimé.';save();render()}).catch(function(){toast('❌ Suppression impossible : vérifie ta connexion',1)})})};
 [].forEach.call(el.querySelectorAll('[data-me]'),function(i){i.onchange=function(){S.me[this.dataset.me]=this.value.trim()||S.me[this.dataset.me];save()}});
 [].forEach.call(el.querySelectorAll('[data-dh]'),function(b){b.onclick=function(){delete S.hist[b.dataset.dh];save();render()}})}
 var T2=[['jour','<span class="ic">📅</span>Jour'],['semaine','<span class="ic">🗓️</span>Semaines'],['mois','<span class="ic">💶</span>Mois'],['reglages','<span class="ic">⚙️</span>Réglages']];
