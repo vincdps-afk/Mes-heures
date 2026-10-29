@@ -60,7 +60,7 @@ nav a.on{color:var(--ac);font-weight:700;background:var(--bg)}
 .mq{position:fixed;top:env(safe-area-inset-top,0px);left:0;right:0;height:36px;z-index:12;background:var(--ac);color:#fff;overflow:hidden;display:flex;align-items:center;cursor:pointer;font-size:14px;font-weight:600}.mqi{display:inline-block;white-space:nowrap;padding-left:100%;animation:mq 20s linear infinite}@keyframes mq{to{transform:translateX(-100%)}}body.hasmq main{padding-top:64px}
 @media (prefers-reduced-motion:reduce){.mqi{animation:none;padding-left:14px}}
 textarea{width:100%;padding:12px 14px;font-size:16px;border:1px solid var(--bd);border-radius:14px;background:var(--bg);color:var(--tx);outline:none;font-family:inherit;resize:vertical}
-.pg{position:relative;height:14px;border-radius:8px;background:var(--bd);overflow:hidden;margin-top:12px}.pf{height:100%;border-radius:8px}.pt{position:absolute;top:0;bottom:0;width:2px;background:var(--tx);opacity:.5}.pl{position:relative;display:flex;justify-content:space-between;font-size:11px;color:var(--mu);margin-top:4px}
+.pg{position:relative;height:16px;border-radius:9px;background:var(--bd);overflow:hidden;margin-top:12px}.pf{height:100%;border-radius:9px;transition:width 1.4s cubic-bezier(.22,.8,.3,1);background-image:linear-gradient(110deg,rgba(255,255,255,.28) 25%,transparent 25% 50%,rgba(255,255,255,.28) 50% 75%,transparent 75%);background-size:28px 28px;animation:pm 1s linear infinite}@keyframes pm{to{background-position:28px 0}}.pt{position:absolute;top:0;bottom:0;width:2px;background:var(--tx);opacity:.45}.pl{position:relative;height:16px;font-size:11px;color:var(--mu);margin-top:5px}.pl span{position:absolute;top:0;white-space:nowrap}
 .cal{display:grid;grid-template-columns:repeat(7,1fr);gap:5px}.ch{text-align:center;font-size:11px;color:var(--mu);font-weight:600}.cd{aspect-ratio:1;display:flex;flex-direction:column;align-items:center;justify-content:center;border-radius:11px;font-size:13px;background:var(--bg);color:var(--tx);cursor:pointer;line-height:1.1}.cd i{font-style:normal;font-size:8px;font-weight:700}.cd.wk{background:var(--ac);color:#fff;font-weight:700}.cd.ty{background:#f5a524;color:#fff;font-weight:700}.cd.td{outline:2px solid var(--ac);outline-offset:1px}
 .dots{display:flex;gap:8px;justify-content:center;margin:0 0 18px}.dots i{width:28px;height:6px;border-radius:3px;background:var(--bd)}.dots i.on{background:var(--ac)}
 </style>
@@ -292,12 +292,15 @@ var one=m.replace(/\s+/g,' ');if(b.dataset.m!==one){b.dataset.m=one;b.innerHTML=
 document.body.classList.add('hasmq')}
 function sg(v){return(v>=0?'+':'−')+eur(Math.abs(v))}
 function calibF(){var a=0,b=0;Object.keys(S.hist).forEach(function(k){var x=S.hist[k];if(x.p>0&&x.e>0){a+=x.e-(x.f||0);b+=tiersRaw(x.p,true).pay}});if(!b)return 1;return Math.max(.7,Math.min(1.3,a/b))}
-function gauge(H,cal,key){var c=S.set,t1=+c.t1||152,t2=+c.t2||185,pct=Math.min(100,H/t2*100),p1=t1/t2*100,col=H>=t2?'#1f9d55':H>=t1?'#f5a524':'var(--ac)',msg;
+function gauge(H,cal,key){var c=S.set,t1=+c.t1||152,t2=+c.t2||185,pos,over=H>t2,msg;
+if(H<=t1)pos=H/t1/3;else if(H<=t2)pos=1/3+(H-t1)/(t2-t1)/3;else pos=1;
+pos=Math.max(0,Math.min(1,pos))*100;
+var col=over||H>=t2?'#1f9d55':H>=t1?'#f5a524':'var(--ac)';
 if(cal>key)msg='Mois terminé : '+(H>=t2?'tarif à 150 % atteint':H>=t1?'tarif à 125 % atteint':'palier de '+t1+' h non atteint');
 else if(H<t1)msg='Encore <b>'+fh(t1-H)+'</b> avant le tarif à 125 % ('+t1+' h)';
 else if(H<t2)msg='Tarif à 125 % en cours · encore <b>'+fh(t2-H)+'</b> avant le 150 % ('+t2+' h)';
 else msg='Tarif à 150 % atteint 🎉';
-return'<div class="card"><div class="lab">Paliers d’heures</div><div class="pg"><div class="pf" style="width:'+pct+'%;background:'+col+'"></div><i class="pt" style="left:'+p1+'%"></i></div><div class="pl"><span>0</span><span style="position:absolute;left:'+p1+'%;transform:translateX(-50%)">'+t1+' h</span><span>'+t2+' h</span></div><div style="margin-top:12px;font-size:15px">'+msg+'</div></div>'}
+return'<div class="card"><div class="lab">Paliers d’heures</div><div class="pg"><div class="pf" data-w="'+pos+'" style="width:0;background-color:'+col+'"></div><i class="pt" style="left:33.333%"></i><i class="pt" style="left:66.666%"></i></div><div class="pl"><span style="left:0">0</span><span style="left:33.333%;transform:translateX(-50%)">'+t1+' h</span><span style="left:66.666%;transform:translateX(-50%)">'+t2+' h</span><span style="right:0;font-weight:700;color:'+(over?'#1f9d55':'var(--mu)')+'">'+(over?fh(H):'…')+'</span></div><div style="margin-top:12px;font-size:15px">'+msg+'</div></div>'}
 var TS={cp:'CP',rc:'RC',ferie:'F'};
 function calHTML(key){var Y=+key.slice(0,4),m=+key.slice(5)-1,n=new Date(Y,m+1,0).getDate(),off=(new Date(Y,m,1).getDay()+6)%7,today=iso(new Date()),o='<div class="cal">'+['L','M','M','J','V','S','D'].map(function(x){return'<div class="ch">'+x+'</div>'}).join('');
 for(var i=0;i<off;i++)o+='<div></div>';
@@ -405,7 +408,7 @@ Object.keys(S.hist).sort().reverse().map(function(k){var x=S.hist[k],est=x.p&&x.
 }
 el.innerHTML=h;
 if(tab==='admin'&&S.me.admin)adminLoad();
-if(tab==='mois'){[].forEach.call(el.querySelectorAll('[data-cd]'),function(c){c.onclick=function(){sel=c.dataset.cd;tab='jour';render()}});var nc=document.getElementById('netc');if(nc)nc.onchange=function(){S.net=this.checked;save();render()};var pb=document.getElementById('pdfb');if(pb)pb.onclick=function(){var ym=document.getElementById('pdfm').value;savePDF(monthPDF(ym),'netroutier-'+ym+'.pdf')}}
+if(tab==='mois'){setTimeout(function(){[].forEach.call(el.querySelectorAll('.pf[data-w]'),function(f){f.style.width=f.dataset.w+'%'})},60);[].forEach.call(el.querySelectorAll('[data-cd]'),function(c){c.onclick=function(){sel=c.dataset.cd;tab='jour';render()}});var nc=document.getElementById('netc');if(nc)nc.onchange=function(){S.net=this.checked;save();render()};var pb=document.getElementById('pdfb');if(pb)pb.onclick=function(){var ym=document.getElementById('pdfm').value;savePDF(monthPDF(ym),'netroutier-'+ym+'.pdf')}}
 if(tab==='semaine'){[].forEach.call(el.querySelectorAll('[data-send]'),function(b){b.onclick=function(){sendWeek(b.dataset.send,b)}});}
 if(tab==='jour'){document.getElementById('mm').value=d.m||'0';document.getElementById('m2').value=d.m2||'0';document.getElementById('nn').value=d.n||'0';
 document.getElementById('dt').onchange=function(){sel=this.value||sel;render()};
