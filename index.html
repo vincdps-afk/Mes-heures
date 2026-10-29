@@ -57,6 +57,9 @@ nav a.on{color:var(--ac);font-weight:700;background:var(--bg)}
 .tp{display:flex;gap:6px;margin:4px 0 8px}.tpl{display:flex;align-items:center;gap:6px;margin:0;padding:4px 10px;border:1px solid var(--bd);border-radius:12px;color:var(--tx);font-size:13px;flex:none}.tpl input{width:15px;height:15px;margin:0;padding:0}
 #spl{position:fixed;inset:0;z-index:60;background:#18181b;color:#fff;display:flex;align-items:center;justify-content:center;transition:opacity .3s;cursor:pointer}.bc{text-align:center;width:min(360px,88vw)}.bi svg{width:64px;height:64px}.bt{font-size:46px;font-weight:700;letter-spacing:-.02em;margin:18px 0 10px}.bs{color:#c9ccd3;font-size:18px}.bl{height:1px;background:#3a3a40;margin:30px 0}.bf{display:flex;justify-content:space-around}.bf div{display:flex;flex-direction:column;align-items:center;gap:8px;font-size:15px}.bf svg{width:30px;height:30px}
 .logo svg{width:56px;height:56px}
+.mq{position:fixed;top:env(safe-area-inset-top,0px);left:0;right:0;height:36px;z-index:12;background:var(--ac);color:#fff;overflow:hidden;display:flex;align-items:center;cursor:pointer;font-size:14px;font-weight:600}.mqi{display:inline-block;white-space:nowrap;padding-left:100%;animation:mq 20s linear infinite}@keyframes mq{to{transform:translateX(-100%)}}body.hasmq main{padding-top:64px}
+@media (prefers-reduced-motion:reduce){.mqi{animation:none;padding-left:14px}}
+textarea{width:100%;padding:12px 14px;font-size:16px;border:1px solid var(--bd);border-radius:14px;background:var(--bg);color:var(--tx);outline:none;font-family:inherit;resize:vertical}
 .dots{display:flex;gap:8px;justify-content:center;margin:0 0 18px}.dots i{width:28px;height:6px;border-radius:3px;background:var(--bd)}.dots i.on{background:var(--ac)}
 </style>
 <script>
@@ -72,7 +75,7 @@ var D={r1:0,r2:0,r3:0,n1:9.92,n2:12.4,n3:16.54,t1:152,t2:185,mf:16.36,me:19.3,pd
 var S={days:{},set:Object.assign({},D),hist:{}};
 try{var s=JSON.parse(localStorage.getItem('vh')||'null');if(s){S.days=s.days||{};S.set=Object.assign({},D,s.set||{});S.hist=s.hist||{}}}catch(e){}
 for(var h0 in S.hist){if(typeof S.hist[h0]==='number')S.hist[h0]={p:S.hist[h0],e:0}}
-S.me=(s&&s.me)||null;S.ob=(s&&s.ob)||0;S.auth=(s&&s.auth)||null;S.net=!!(s&&s.net);S.sk=(s&&s.sk)||null;S.ss=(s&&s.ss)||null;S.sp=(s&&s.sp)||null;S.lock=(s&&s.lock)||null;S.rep=(s&&typeof s.rep==='boolean')?s.rep:null;S.delQ=(s&&s.delQ)||[];S.sent=(s&&s.sent)||{};S.sentD=(s&&s.sentD)||{};Object.keys(S.sent).forEach(function(k){if(S.sent[k]&&S.sent[k].sig)try{JSON.parse(S.sent[k].sig).forEach(function(x){S.sentD[x.d]=JSON.stringify(x)})}catch(e){}});
+S.me=(s&&s.me)||null;S.ob=(s&&s.ob)||0;S.auth=(s&&s.auth)||null;S.net=!!(s&&s.net);S.sk=(s&&s.sk)||null;S.ann=(s&&s.ann)||'';S.ss=(s&&s.ss)||null;S.sp=(s&&s.sp)||null;S.lock=(s&&s.lock)||null;S.rep=(s&&typeof s.rep==='boolean')?s.rep:null;S.delQ=(s&&s.delQ)||[];S.sent=(s&&s.sent)||{};S.sentD=(s&&s.sentD)||{};Object.keys(S.sent).forEach(function(k){if(S.sent[k]&&S.sent[k].sig)try{JSON.parse(S.sent[k].sig).forEach(function(x){S.sentD[x.d]=JSON.stringify(x)})}catch(e){}});
 function save(){try{localStorage.setItem('vh',JSON.stringify(S))}catch(e){}if(typeof pushSettings==='function')pushSettings()}
 var tab='jour',sel=iso(new Date());
 function iso(d){var m=d.getMonth()+1,j=d.getDate();return d.getFullYear()+'-'+(m<10?'0':'')+m+'-'+(j<10?'0':'')+j}
@@ -117,7 +120,7 @@ gone('Mise à jour : crée ton compte (ou connecte-toi) pour continuer.');return
 S.me.sync=true;S.me.uid=uid;S.me.hp=!!rows[0].has_pin;
 if(S.me.ac){var code=S.me.ac,ok=await sb('POST','/rest/v1/rpc/claim_admin',{code:code});delete S.me.ac;if(ok)rows=[{admin:true}];else toast('Code administrateur incorrect.',1)}
 S.me.admin=!!rows[0].admin;save()}catch(e){}
-SYNCING=false;if(S.me&&!S.ob&&JSON.stringify([S.me,tab])!==before)render();if(S.me&&S.me.admin)adminBadge();flushDel();reportStatus()}
+SYNCING=false;if(S.me&&!S.ob&&JSON.stringify([S.me,tab])!==before)render();if(S.me&&S.me.admin)adminBadge();flushDel();reportStatus();annLoad()}
 var ADM={n:0,open:{},w:{},year:new Date().getFullYear(),rY:new Date().getFullYear(),rM:new Date().getMonth()};
 function refreshNav(){var a=document.querySelector('nav a[data-t="admin"]');if(!a)return;var b=a.querySelector('.bd');if(ADM.n){if(!b){b=document.createElement('i');b.className='bd';a.appendChild(b)}b.textContent=ADM.n}else if(b)b.parentNode.removeChild(b)}
 async function adminBadge(){if(!SB||!S.me||!S.me.admin||!S.me.uid)return;try{var r=await sb('GET','/rest/v1/weeks?select=id&seen=eq.false&user_id=neq.'+S.me.uid);ADM.n=r.length;refreshNav()}catch(e){}}
@@ -179,8 +182,11 @@ box.innerHTML='<div id="back" style="color:var(--ac);font-weight:600;cursor:poin
 document.getElementById('back').onclick=function(){ADM.view=null;adminRender()};
 document.getElementById('yp').onclick=function(){ADM.year--;adminRender()};document.getElementById('yn').onclick=function(){ADM.year++;adminRender()}}
 else{ADM.view=null;
-box.innerHTML='<button class="s" id="recapb" style="margin:0 0 12px">📋 Récapitulatif du mois</button>'+(ADM.P.length?ADM.P.map(function(r){var me=r.id===S.me.uid,nw=(by[r.id]||[]).filter(function(w){return!w.seen}).length;
+box.innerHTML='<div style="margin:0 0 18px"><h2>Message d’information</h2><textarea id="annt" maxlength="300" rows="3" placeholder="Écris ici le message qui défilera en haut de l’appli de tous les chauffeurs…">'+esc(S.ann||'')+'</textarea><div style="display:flex;gap:8px;margin-top:10px"><button id="annp" style="margin:0">Publier</button><button class="s" id="anne" style="margin:0">Effacer</button></div></div><button class="s" id="recapb" style="margin:0 0 12px">📋 Récapitulatif du mois</button>'+(ADM.P.length?ADM.P.map(function(r){var me=r.id===S.me.uid,nw=(by[r.id]||[]).filter(function(w){return!w.seen}).length;
 return'<div class="row" style="align-items:center"><span data-open="'+esc(r.id)+'" style="flex:1;cursor:pointer;font-weight:600">'+esc(r.prenom)+' '+esc(r.nom)+(r.up_to_date===true?' <span class="okc" style="font-size:13px">✓ à jour</span>':'')+(nw&&!me?' <i class="pill">+'+nw+'</i>':'')+'</span>'+(me?'':'<span class="x" data-id="'+esc(r.id)+'" data-nm="'+esc(r.prenom+' '+r.nom)+'" style="font-size:22px;padding:0 6px">✕</span>')+'</div>'}).join(''):'<div class="mu">Aucun inscrit.</div>');
+var pubAnn=function(t){sb('POST','/rest/v1/rpc/set_announcement',{p_msg:t}).then(function(){annSet(t);drawAnn();toast(t?'✅ Message publié':'Message effacé')}).catch(function(){toast('❌ Publication impossible : vérifie ta connexion',1)})};
+document.getElementById('annp').onclick=function(){var t=document.getElementById('annt').value.trim();if(!t){toast('Écris un message avant de publier',1);return}pubAnn(t)};
+document.getElementById('anne').onclick=function(){document.getElementById('annt').value='';pubAnn('')};
 document.getElementById('recapb').onclick=function(){var mx='';ADM.Wk.forEach(function(w){(w.days||[]).forEach(function(x){if(String(x.d)>mx)mx=String(x.d)})});if(mx){ADM.rY=+mx.slice(0,4);ADM.rM=+mx.slice(5,7)-1}ADM.view='recap';adminRender()};
 [].forEach.call(box.querySelectorAll('[data-open]'),function(b){b.onclick=function(){ADM.view=b.dataset.open;adminRender()}});
 [].forEach.call(box.querySelectorAll('[data-id]'),function(b){b.onclick=function(){ask('Supprimer ce compte ?',esc(b.dataset.nm),'Supprimer',function(){sb('DELETE','/rest/v1/profiles?id=eq.'+b.dataset.id).then(adminLoad).catch(function(){toast('❌ Suppression impossible',1)})})}})}
@@ -274,8 +280,15 @@ function pushSettings(){clearTimeout(PUSHT);PUSHT=setTimeout(async function(){if
 async function restoreDays(){try{var rows=await sb('GET','/rest/v1/weeks?select=week,days&user_id=eq.'+S.auth.uid);rows.forEach(function(w){(w.days||[]).forEach(function(x){if(S.days[x.d])return;var o={h:+x.h||0,m:x.m||'0',m2:x.m2||'0',n:x.n||'0',p:!!x.p};if(x.t)o.t=x.t;S.days[x.d]=o;S.sentD[x.d]=JSON.stringify(dayObj(x.d))})})}catch(e){}}
 function backupNow(){popup('Sauvegarder mes réglages','<div class="mu">Entre ton code personnel : tes tarifs et tes frais seront sauvegardés en ligne, chiffrés avec ce code.</div><input id="bk1" type="password" autocomplete="off" placeholder="Code personnel" style="margin-top:10px">',[{t:'Sauvegarder',fn:function(b){var c=b.querySelector('#bk1').value.trim();if(c.length<4){toast('Code trop court',1);return}
 sb('POST','/rest/v1/rpc/change_pin',{p_old:c,p_new:c}).then(async function(r){if(r&&r.ok){await newKey(c);toast('☁️ Réglages sauvegardés');render()}else toast('Code incorrect',1)}).catch(function(){toast('❌ Connexion impossible',1)})}},{t:'Annuler',s:1}])}
+function annSet(m){S.ann=String(m||'').trim();try{localStorage.setItem('vh',JSON.stringify(S))}catch(e){}}
+async function annLoad(){if(!SB||!S.me||!S.me.sync)return;try{var m=await sb('POST','/rest/v1/rpc/get_announcement',{});annSet(m||'');drawAnn()}catch(e){}}
+function drawAnn(){var b=document.getElementById('mq'),m=(S.me&&!S.ob&&!(S.lock&&LOCKED))?(S.ann||''):'';
+if(!m){if(b)b.remove();document.body.classList.remove('hasmq');return}
+if(!b){b=document.createElement('div');b.id='mq';b.className='mq';document.body.appendChild(b);b.onclick=function(){popup('Message d’information','<div style="text-align:left;line-height:1.6;color:var(--tx);font-size:15px;margin-top:8px">'+esc(S.ann).replace(/\n/g,'<br>')+'</div>',[{t:'Fermer',s:1}])}}
+var one=m.replace(/\s+/g,' ');if(b.dataset.m!==one){b.dataset.m=one;b.innerHTML='<span class="mqi">'+esc(one)+'</span>';b.firstChild.style.animationDuration=Math.max(12,one.length*0.22)+'s'}
+document.body.classList.add('hasmq')}
 if(SB)setTimeout(syncMe,400);
-if(SB){setInterval(function(){if(!document.hidden){adminBadge();flushDel();reportStatus();if(tab==='admin'&&S.me&&S.me.admin)adminLoad()}},60000);document.addEventListener('visibilitychange',function(){if(!document.hidden){adminBadge();flushDel()}})}
+if(SB){setInterval(function(){if(!document.hidden){adminBadge();flushDel();reportStatus();annLoad();if(tab==='admin'&&S.me&&S.me.admin)adminLoad()}},60000);document.addEventListener('visibilitychange',function(){if(!document.hidden){adminBadge();flushDel();annLoad()}})}
 function legalHTML(){return'<div class="mu" style="line-height:1.6">'+(SB?'Pour créer ton compte, ton <b>prénom, ton nom et ton entreprise</b> sont enregistrés en ligne et visibles par l’administrateur de ton entreprise, qui peut supprimer ton compte. Tes heures restent <b>sur ton téléphone</b>, sauf celles que tu transmets aux bureaux. Tes tarifs et tes frais sont sauvegardés en ligne sous forme <b>chiffrée avec ton code personnel</b>, pour retrouver ton compte sur un autre téléphone. Tu peux supprimer ton compte à tout moment dans Réglages. Ton code personnel est enregistré sous forme chiffrée et sert uniquement à te reconnecter. Pour créer un compte, tu dois accepter.':'Pour fonctionner, l’appli enregistre ton prénom, ton nom, ton entreprise, tes heures, tes tarifs et tes frais. Ces données restent <b>sur ton téléphone</b> : elles ne sont envoyées à aucun serveur aujourd’hui. Tu peux les modifier dans Réglages et les effacer à tout moment en supprimant les données du site dans ton navigateur. Pour créer un compte, tu dois accepter.')+'</div>'+
 '<details><summary>Mentions légales</summary><div class="mu" style="line-height:1.6;margin-top:8px"><b>Éditeur</b> : application créée par Vincenzo De Pasquale.<br><b>Hébergement</b> : GitHub Pages (GitHub, Inc.)'+(SB?' ; base de données : Supabase, serveurs en Europe':'')+'.<br><b>Données traitées</b> : prénom, nom, entreprise, heures, tarifs et frais saisis. <b>Base légale</b> : ton consentement. <b>Durée</b> : '+(SB?'jusqu’à la suppression de ton compte, par toi ou par l’administrateur de ton entreprise.':'jusqu’à ce que tu effaces les données du site dans ton navigateur.')+'<br><b>Tes droits</b> (RGPD) : accès, rectification, effacement et retrait du consentement, que tu exerces directement dans l’appli (Réglages) ou en effaçant les données du site. '+(SB?'':'Si une fonction en ligne est ajoutée plus tard, tu en seras informé et ton accord sera demandé de nouveau.')+'<br><b>Estimations</b> : les montants affichés sont indicatifs, sans valeur contractuelle ; seule ta fiche de paie fait foi.</div></details>'}
 async function doLogin(p,n,e,pin,btn){btn.disabled=true;btn.textContent='Connexion…';var bad=function(m){var o=document.getElementById('oerr');if(o)o.textContent=m;btn.disabled=false;btn.textContent='Me connecter'};
@@ -330,6 +343,7 @@ function weekdays(y,m,upto){var c=0,n=new Date(y,m+1,0).getDate();for(var i=1;i<
 function V(h){return h.n?h.n:''}
 function render(){
 var el=document.getElementById('app'),h='';
+drawAnn();
 if(S.lock&&LOCKED){if(!document.getElementById('lk'))lockScreen(el);return}
 if(!S.me||S.ob||(SB&&S.me.sync&&S.me.hp===false)){onboard(el);return}
 if(tab==='jour'){
