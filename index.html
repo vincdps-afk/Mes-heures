@@ -51,6 +51,8 @@ nav a.on{color:var(--ac);font-weight:700;background:var(--bg)}
 .x{color:#e5484d;cursor:pointer;margin-left:8px}
 .ok{color:#1f9d55;font-weight:600;margin-top:12px;font-size:14px}.pill{background:#e5484d;color:#fff;border-radius:10px;font-size:12px;font-style:normal;font-weight:700;padding:1px 8px}.bd{position:absolute;top:2px;right:16%;background:#e5484d;color:#fff;border-radius:10px;min-width:18px;height:18px;font-size:11px;font-style:normal;font-weight:700;line-height:18px;padding:0 5px}.wcard{background:var(--bg);border-radius:16px;padding:14px;margin-top:10px}
 .mo>summary{font-size:15px;margin-top:12px}details.wk{margin:4px 0 0 10px}.wk>summary{color:var(--tx);font-weight:500;margin-top:8px}.mo>summary,.wk>summary{display:flex;align-items:center;gap:8px}.sv{margin-left:auto;font-weight:500;color:var(--tx);font-size:14px;text-align:right}.wkrow{display:flex;justify-content:space-between;padding:10px 0 4px 10px;font-size:15px}.no{opacity:.45}.tb{width:100%;border-collapse:collapse;font-size:13px}.tb th,.tb td{padding:7px 4px;border-bottom:1px solid var(--bd);text-align:left}.tb th{color:var(--mu);font-weight:600}.tt td{font-weight:700;border-bottom:0}
+.ov{position:fixed;inset:0;background:rgba(0,0,0,.45);display:flex;align-items:center;justify-content:center;z-index:20;padding:24px}.pb{background:var(--card);border-radius:24px;padding:26px 22px;max-width:340px;width:100%;text-align:center;box-shadow:0 20px 60px rgba(0,0,0,.35)}.pb h3{font-size:19px;margin:0 0 8px}.pb button{margin-top:12px}
+.okc{color:#1f9d55;font-weight:700}
 .dots{display:flex;gap:8px;justify-content:center;margin:0 0 18px}.dots i{width:28px;height:6px;border-radius:3px;background:var(--bd)}.dots i.on{background:var(--ac)}
 </style>
 <script>
@@ -66,7 +68,7 @@ var D={r1:0,r2:0,r3:0,t1:152,t2:185,mf:16.36,me:19.3,pd:8.87,nf:35.95,ne:42.42};
 var S={days:{},set:Object.assign({},D),hist:{}};
 try{var s=JSON.parse(localStorage.getItem('vh')||'null');if(s){S.days=s.days||{};S.set=Object.assign({},D,s.set||{});S.hist=s.hist||{}}}catch(e){}
 for(var h0 in S.hist){if(typeof S.hist[h0]==='number')S.hist[h0]={p:S.hist[h0],e:0}}
-S.me=(s&&s.me)||null;S.ob=(s&&s.ob)||0;S.auth=(s&&s.auth)||null;S.sent=(s&&s.sent)||{};
+S.me=(s&&s.me)||null;S.ob=(s&&s.ob)||0;S.auth=(s&&s.auth)||null;S.sent=(s&&s.sent)||{};S.sentD=(s&&s.sentD)||{};Object.keys(S.sent).forEach(function(k){if(S.sent[k]&&S.sent[k].sig)try{JSON.parse(S.sent[k].sig).forEach(function(x){S.sentD[x.d]=JSON.stringify(x)})}catch(e){}});
 function save(){try{localStorage.setItem('vh',JSON.stringify(S))}catch(e){}}
 var tab='jour',sel=iso(new Date());
 function iso(d){var m=d.getMonth()+1,j=d.getDate();return d.getFullYear()+'-'+(m<10?'0':'')+m+'-'+(j<10?'0':'')+j}
@@ -123,20 +125,23 @@ function codeStr(c){return['rf','re','cc','nf','ne'].filter(function(k){return c
 function weekCodes(ds){var t={rf:0,re:0,cc:0,nf:0,ne:0};(ds||[]).forEach(function(x){var c=codes(x);for(var k in t)t[k]+=c[k]});return codeStr(t)||'aucun'}
 var LEG='rf = repas France · re = repas étranger · cc = casse-croûte · nf = nuit France · ne = nuit étranger';
 function dayLine(x){var c=codeStr(codes(x));return['Dim','Lun','Mar','Mer','Jeu','Ven','Sam'][pd(x.d).getDay()]+' '+x.d.slice(8)+'/'+x.d.slice(5,7)+' · '+fh(x.h)+(c?' · '+c:'')}
-function sendBlock(k){if(!SB||!S.me.sync)return'';var st=S.sent[k];if(st&&st.sig===JSON.stringify(weekData(k)))return'<div class="ok">✅ Transmis aux bureaux le '+fdt(st.t)+'</div>';return'<button class="s" data-send="'+k+'" style="margin-top:12px">'+(st?'Retransmettre aux bureaux (modifié depuis la transmission)':'Transmettre aux bureaux')+'</button>'}
-async function sendWeek(k,btn){var ds=weekData(k);if(!ds.length)return;var old=btn.textContent;btn.disabled=true;btn.textContent='Transmission…';
+function pendingDays(k){return weekData(k).filter(function(x){return S.sentD[x.d]!==JSON.stringify(x)})}
+function sendBlock(k){if(!SB||!S.me.sync)return'';var n=pendingDays(k).length,st=S.sent[k];
+return'<div style="text-align:center;margin-top:16px">'+(n?'<div class="mu" style="margin-bottom:8px">'+n+' jour'+(n>1?'s':'')+' à envoyer</div>':(st?'<div class="ok" style="margin:0 0 8px">✅ Tout est transmis (le '+fdt(st.t)+')</div>':''))+'<button class="'+(n?'':'s')+'" data-send="'+k+'" style="width:auto;padding:14px 22px;margin:0 auto">Envoyer mes heures et frais aux bureaux</button></div>'}
+async function sendDays(k,ds,btn){btn=btn||{};if(!ds.length){toast('✅ Tout est déjà transmis aux bureaux');return}var old=btn.textContent;btn.disabled=true;btn.textContent='Transmission…';
 try{var tot=ds.reduce(function(s,d){return s+d.h},0),t=await sb('POST','/rest/v1/rpc/send_week',{p_week:k,p_days:ds,p_total:tot});
-S.sent[k]={t:t||new Date().toISOString(),sig:JSON.stringify(ds)};save();toast('✅ Semaine transmise aux bureaux');render()}
+ds.forEach(function(x){S.sentD[x.d]=JSON.stringify(x)});S.sent[k]={t:t||new Date().toISOString()};save();toast(ds.length>1?'✅ '+ds.length+' jours transmis aux bureaux':'✅ Journée transmise aux bureaux');render()}
 catch(e){btn.disabled=false;btn.textContent=old;toast('❌ Transmission impossible : vérifie ta connexion et réessaie',1)}}
+function sendWeek(k,btn){return sendDays(k,pendingDays(k),btn)}
 function weekText(r,w){var d=pd(w.week);return r.prenom+' '+r.nom+' — semaine du '+d.getDate()+'/'+(d.getMonth()+1)+' ('+fh(w.total_h||0)+')\n'+(w.days||[]).map(dayLine).join('\n')+'\nTotal : '+weekCodes(w.days)+'\n('+LEG+')'}
 var MN=['Janvier','Février','Mars','Avril','Mai','Juin','Juillet','Août','Septembre','Octobre','Novembre','Décembre'];
 function cs(days){var c=weekCodes(days);return c==='aucun'?'':' · '+c}
 function mondaysOf(y,m){var o=[],n=new Date(y,m+1,0).getDate();for(var i=1;i<=n;i++){var d=new Date(y,m,i);if(d.getDay()===1)o.push(iso(d))}return o}
 function sumDays(ws){var th=0,all=[];ws.forEach(function(w){th+=+w.total_h||0;all=all.concat(w.days||[])});return{h:th,all:all}}
 function cell(n,k){return n?n+' '+k:''}
-function dayRow(x,date){var L=['Dim','Lun','Mar','Mer','Jeu','Ven','Sam'][pd(date).getDay()]+' '+date.slice(8)+'/'+date.slice(5,7);
+function dayRow(x,date,tick){var L=['Dim','Lun','Mar','Mer','Jeu','Ven','Sam'][pd(date).getDay()]+' '+date.slice(8)+'/'+date.slice(5,7);
 if(!x)return'<tr class="no"><td>'+L+'</td><td>—</td><td></td><td></td><td></td></tr>';var c=codes(x);
-return'<tr><td>'+L+'</td><td>'+fh(x.h)+'</td><td>'+[cell(c.rf,'rf'),cell(c.re,'re')].filter(Boolean).join(' ')+'</td><td>'+(c.cc?'cc':'')+'</td><td>'+[cell(c.nf,'nf'),cell(c.ne,'ne')].filter(Boolean).join(' ')+'</td></tr>'}
+return'<tr><td>'+L+(tick?' <span class="okc">✓</span>':'')+'</td><td>'+fh(x.h)+'</td><td>'+[cell(c.rf,'rf'),cell(c.re,'re')].filter(Boolean).join(' ')+'</td><td>'+(c.cc?'cc':'')+'</td><td>'+[cell(c.nf,'nf'),cell(c.ne,'ne')].filter(Boolean).join(' ')+'</td></tr>'}
 function weekTable(r,w,mon){var by={},rows='',d0=pd(mon);(w.days||[]).forEach(function(x){by[x.d]=x});
 for(var i=0;i<7;i++){var d=new Date(d0);d.setDate(d0.getDate()+i);var k=iso(d);if(i<6||by[k])rows+=dayRow(by[k],k)}
 var t=weekCodes(w.days);
@@ -167,6 +172,19 @@ return'<div class="row" style="align-items:center"><span data-open="'+esc(r.id)+
 [].forEach.call(box.querySelectorAll('[data-copy]'),function(b){b.onclick=function(){var x=ADM.w[b.dataset.copy],t=weekText(x.r,x.w);if(navigator.clipboard&&navigator.clipboard.writeText)navigator.clipboard.writeText(t).then(function(){toast('✅ Copié')},function(){prompt('Copie ce texte :',t)});else prompt('Copie ce texte :',t)}});
 [].forEach.call(box.querySelectorAll('[data-seen]'),function(b){b.onclick=function(){sb('POST','/rest/v1/rpc/mark_week_seen',{p_id:b.dataset.seen}).then(adminLoad).catch(function(){toast('❌ Action impossible',1)})}});
 refreshNav()}
+function popup(title,msg,btns){var o=document.createElement('div');o.className='ov';var b=document.createElement('div');b.className='pb';b.innerHTML='<h3>'+title+'</h3><div class="mu">'+msg+'</div>';
+var close=function(){if(o.parentNode)o.parentNode.removeChild(o)};
+btns.forEach(function(x){var e=document.createElement('button');e.textContent=x.t;if(x.s)e.className='s';e.onclick=function(){close();if(x.fn)x.fn()};b.appendChild(e)});
+o.appendChild(b);document.body.appendChild(o);return close}
+function afterSave(k){var d=pd(k),wk=iso(monday(d)),done=false,lab=['Dim','Lun','Mar','Mer','Jeu','Ven','Sam'][d.getDay()]+' '+d.getDate()+'/'+(d.getMonth()+1)+' · '+fh(S.days[k].h);
+var next=function(){var x=weekData(wk).filter(function(y){return y.d===k})[0];if(!SB||!S.me.sync||!x||S.sentD[k]===JSON.stringify(x))return;
+popup('Transmettre la journée aux bureaux ?',lab,[{t:'Oui, transmettre',fn:function(){sendDays(wk,[x])}},{t:'Plus tard',s:1}])};
+var go=function(){if(!done){done=true;next()}};
+var close=popup('✅ Journée enregistrée',lab,[{t:'OK',fn:go}]);setTimeout(function(){if(!done){close();go()}},1500)}
+function userWeekTable(x){var by={},rows='',d0=pd(x.k);x.ds.forEach(function(y){by[y.d]=y});
+for(var i=0;i<7;i++){var d=new Date(d0);d.setDate(d0.getDate()+i);var k=iso(d);if(i<6||by[k])rows+=dayRow(by[k],k,by[k]&&S.sentD[k]===JSON.stringify(by[k]))}
+var t=weekCodes(x.ds);
+return'<div class="wcard"><table class="tb"><tr><th>Jour</th><th>Heures</th><th>Repas</th><th>CC</th><th>Nuit</th></tr>'+rows+'<tr class="tt"><td>Total</td><td>'+fh(x.h)+'</td><td colspan="3">'+(t==='aucun'?'':t)+'</td></tr></table>'+(SB&&S.me.sync?'<div class="mu" style="margin-top:6px">✓ = jour déjà transmis aux bureaux</div>':'')+sendBlock(x.k)+'</div>'}
 if(SB)setTimeout(syncMe,400);
 if(SB){setInterval(function(){if(!document.hidden)adminBadge()},60000);document.addEventListener('visibilitychange',function(){if(!document.hidden)adminBadge()})}
 function legalHTML(){return'<div class="mu" style="line-height:1.6">'+(SB?'Pour créer ton compte, ton <b>prénom, ton nom et ton entreprise</b> sont enregistrés en ligne et visibles par l’administrateur de ton entreprise, qui peut supprimer ton compte. Tes heures, tarifs et frais restent <b>sur ton téléphone</b>. Tu peux supprimer ton compte à tout moment dans Réglages. Ton code personnel est enregistré sous forme chiffrée et sert uniquement à te reconnecter. Pour créer un compte, tu dois accepter.':'Pour fonctionner, l’appli enregistre ton prénom, ton nom, ton entreprise, tes heures, tes tarifs et tes frais. Ces données restent <b>sur ton téléphone</b> : elles ne sont envoyées à aucun serveur aujourd’hui. Tu peux les modifier dans Réglages et les effacer à tout moment en supprimant les données du site dans ton navigateur. Pour créer un compte, tu dois accepter.')+'</div>'+
@@ -233,12 +251,10 @@ h+=hello()+'<div class="card"><label>Date</label><input type="date" id="dt" valu
 var ws=monday(pd(sel)),tot=0,al=0,wp=0,rows='';
 for(var i=0;i<7;i++){var x=new Date(ws);x.setDate(x.getDate()+i);var k=iso(x),dd=S.days[k];if(dd){tot+=dd.h;al+=allow(dd);wp+=dayPay(k)}
 rows+='<div class="row"><span>'+['Lun','Mar','Mer','Jeu','Ven','Sam','Dim'][i]+' '+x.getDate()+'</span><span>'+(dd?fh(dd.h)+' · '+eur(dayPay(k))+' · '+eur(allow(dd)):'—')+(dd?' <span class="x" data-del="'+k+'">✕</span>':'')+'</span></div>'}
-h+='<div class="card hero2"><div class="lab">Semaine du '+ws.getDate()+'/'+(ws.getMonth()+1)+'</div><div class="big">'+eur(wp+al)+'</div><div class="sub">'+fh(tot)+' · frais compris</div><details><summary>Détails</summary><div class="mu" style="margin-top:8px">'+eur(wp)+' d’heures + '+eur(al)+' de frais</div><div style="margin-top:6px">'+rows+'</div></details></div>';
+h+='<div class="card hero2"><div class="lab">Semaine du '+ws.getDate()+'/'+(ws.getMonth()+1)+'</div><div class="big">'+eur(wp+al)+'</div><div class="sub">'+fh(tot)+' · frais compris</div><div class="mu" style="margin-top:10px">'+eur(wp)+' d’heures + '+eur(al)+' de frais</div><div style="margin-top:6px">'+rows+'</div></div>';
 }
-if(tab==='semaine'){
-var W={};for(var k in S.days){var m=iso(monday(pd(k)));W[m]=W[m]||{h:0,a:0,p:0};W[m].h+=S.days[k].h;W[m].a+=allow(S.days[k]);W[m].p+=dayPay(k)}
-var ks=Object.keys(W).sort(),cu={},cm={};ks.forEach(function(k){var mk=k.slice(0,7);cm[mk]=(cm[mk]||0)+W[k].p+W[k].a;cu[k]=cm[mk]});ks.reverse();
-h+='<h1>Semaines</h1><div class="card">'+(ks.length?ks.map(function(k){var x=pd(k);return'<div class="row" style="display:block"><div style="display:flex;justify-content:space-between"><span>Sem. du '+x.getDate()+'/'+(x.getMonth()+1)+'<div class="mu">'+fh(W[k].h)+' effectuées</div></span><b>'+eur(W[k].p+W[k].a)+'</b></div><details><summary style="margin-top:8px">Détails</summary><div class="mu" style="margin-top:6px">'+eur(W[k].p)+' heures + '+eur(W[k].a)+' frais</div><div class="mu">Cumul du mois : '+eur(cu[k])+'</div></details>'+sendBlock(k)+'</div>'}).join(''):'<div class="mu">Aucune journée enregistrée.</div>')+'</div>';
+if(tab==='semaine'){var cw=iso(monday(new Date())),wds=weekData(cw),wh=wds.reduce(function(t,d){return t+d.h},0),w0=pd(cw),w6=new Date(w0);w6.setDate(w0.getDate()+5);
+h+='<h1>Semaine en cours</h1><div class="card"><div class="lab">Du '+w0.getDate()+'/'+(w0.getMonth()+1)+' au '+w6.getDate()+'/'+(w6.getMonth()+1)+'</div>'+userWeekTable({k:cw,ds:wds,h:wh})+'</div>'
 }
 if(tab==='mois'){
 var now=new Date(),key=iso(now).slice(0,7),M=month(key),H=M.h,T=tiers(H),c=S.set;
@@ -252,7 +268,7 @@ h+=hello()+(c.r1?'':'<div class="card"><div class="mu">Renseigne tes taux et ind
 '<div class="row"><span>150 % · à partir de '+c.t2+'h</span><span>'+fh(T.e)+' · '+eur(T.e*c.r3)+'</span></div>'+
 '<div class="row"><span>Frais</span><span>'+eur(M.al)+'</span></div>'+
 '<div class="mu" style="margin-top:8px">Saisi : '+fh(M.h)+' sur '+M.n+' jours</div></details></div>'+
-'<div class="card"><div class="lab">Estimation fin de mois</div><div class="big">'+eur(Tb.pay+fb)+'</div><div class="sub">≈ '+fh(Hb)+' payées · frais compris</div><details><summary>Détails</summary>'+rw('Heures',Tb.pay)+rw('Frais',fb)+(rt?rw('Net potentiel',rt*Tb.pay+fb):'<div class="mu" style="margin-top:8px">Ajoute tes mois précédents dans Réglages pour estimer ton net.</div>')+'</details></div>';
+'<div class="card"><div class="lab">Estimation fin de mois</div><div class="big">'+eur(Tb.pay+fb)+'</div><div class="sub">≈ '+fh(Hb)+' payées · frais compris</div><div class="mu" style="margin-top:8px">Plus tu renseignes d’informations (heures, frais, mois précédents), plus l’estimation sera proche du réel.</div><details><summary>Détails</summary>'+rw('Heures',Tb.pay)+rw('Frais',fb)+(rt?rw('Net potentiel',rt*Tb.pay+fb):'<div class="mu" style="margin-top:8px">Ajoute tes mois précédents dans Réglages pour estimer ton net.</div>')+'</details></div>';
 }
 if(tab==='admin'&&S.me.admin){h+='<h1>Administration</h1><div class="card" id="adm"><div class="mu">Chargement…</div></div>'}
 if(tab==='reglages'){
@@ -264,10 +280,10 @@ Object.keys(S.hist).sort().reverse().map(function(k){var x=S.hist[k];return'<div
 }
 el.innerHTML=h;
 if(tab==='admin'&&S.me.admin)adminLoad();
-if(tab==='semaine')[].forEach.call(el.querySelectorAll('[data-send]'),function(b){b.onclick=function(){sendWeek(b.dataset.send,b)}});
+if(tab==='semaine'){[].forEach.call(el.querySelectorAll('[data-send]'),function(b){b.onclick=function(){sendWeek(b.dataset.send,b)}});}
 if(tab==='jour'){document.getElementById('mm').value=d.m||'0';document.getElementById('m2').value=d.m2||'0';document.getElementById('nn').value=d.n||'0';
 document.getElementById('dt').onchange=function(){sel=this.value||sel;render()};
-document.getElementById('sv').onclick=function(){S.days[sel]={h:parseH(document.getElementById('hh').value),m:document.getElementById('mm').value,m2:document.getElementById('m2').value,n:document.getElementById('nn').value,p:document.getElementById('pp').checked};save();render()};
+document.getElementById('sv').onclick=function(){S.days[sel]={h:parseH(document.getElementById('hh').value),m:document.getElementById('mm').value,m2:document.getElementById('m2').value,n:document.getElementById('nn').value,p:document.getElementById('pp').checked};save();render();afterSave(sel)};
 [].forEach.call(el.querySelectorAll('[data-del]'),function(b){b.onclick=function(){delete S.days[b.dataset.del];save();render()}})}
 if(tab==='reglages'){var ap=function(inp){var v=parseFloat(String(inp.value).replace(',','.')),k=inp.dataset.s;if(isNaN(v))return;S.set[k]=v;if(k==='r1'){S.set.r2=Math.round(v*1250+1e-9)/1000;S.set.r3=Math.round(v*1500+1e-9)/1000;var q2=el.querySelector('[data-s="r2"]'),q3=el.querySelector('[data-s="r3"]');if(q2)q2.value=S.set.r2;if(q3)q3.value=S.set.r3}save()};
 [].forEach.call(el.querySelectorAll('[data-s]'),function(i){i.oninput=function(){ap(this)};i.onchange=function(){ap(this)}});
