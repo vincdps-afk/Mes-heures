@@ -1,4 +1,4 @@
-var C="mes-heures-v93",PH="mes-photos",SP="/storage/v1/object/sign/client-photos/",F=["./","index.html","manifest.json","icon-192.png","icon-512.png"];
+var C="mes-heures-v94",PH="mes-photos",SP="/storage/v1/object/sign/client-photos/",F=["./","index.html","manifest.json","icon-192.png","icon-512.png"];
 self.addEventListener("install",function(e){e.waitUntil(caches.open(C).then(function(c){return c.addAll(F)}));self.skipWaiting()});
 self.addEventListener("activate",function(e){e.waitUntil(caches.keys().then(function(k){return Promise.all(k.filter(function(x){return x!==C&&x!==PH}).map(function(x){return caches.delete(x)}))}).then(function(){return self.clients.claim()}))});
 function pk(u){return new Request(u.origin+u.pathname)}
